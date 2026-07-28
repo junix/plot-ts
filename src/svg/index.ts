@@ -14,10 +14,42 @@
 import type { Html } from '../util/html.js';
 import { h, join } from '../util/html.js';
 import { generateStyles, palette, type AccentName } from '../style/tokens.js';
-import { renderColumn, renderLine, renderScatter, renderHeatmap } from './charts.js';
-import type { ColumnChart, LineChart, ScatterChart, HeatmapChart } from './charts.js';
+import {
+  renderColumn,
+  renderLine,
+  renderScatter,
+  renderHeatmap,
+  renderWaterfall,
+  renderDonut,
+  renderRadar,
+  renderGauge,
+  renderSlope,
+  renderPyramid,
+} from './charts.js';
+import type {
+  ColumnChart,
+  LineChart,
+  ScatterChart,
+  HeatmapChart,
+  WaterfallChart,
+  DonutChart,
+  RadarChart,
+  GaugeChart,
+  SlopeChart,
+  PyramidChart,
+} from './charts.js';
 
-export type Chart = ColumnChart | LineChart | ScatterChart | HeatmapChart;
+export type Chart =
+  | ColumnChart
+  | LineChart
+  | ScatterChart
+  | HeatmapChart
+  | WaterfallChart
+  | DonutChart
+  | RadarChart
+  | GaugeChart
+  | SlopeChart
+  | PyramidChart;
 
 export interface SvgFigureOptions {
   width?: number;
@@ -80,6 +112,42 @@ export class SvgFigure {
     return this;
   }
 
+  /** 瀑布图 */
+  waterfall(config: Omit<WaterfallChart, 'type'>): this {
+    this.charts.push({ type: 'waterfall', ...config });
+    return this;
+  }
+
+  /** 环形图 */
+  donut(config: Omit<DonutChart, 'type'>): this {
+    this.charts.push({ type: 'donut', ...config });
+    return this;
+  }
+
+  /** 雷达图 */
+  radar(config: Omit<RadarChart, 'type'>): this {
+    this.charts.push({ type: 'radar', ...config });
+    return this;
+  }
+
+  /** 仪表盘 */
+  gauge(config: Omit<GaugeChart, 'type'>): this {
+    this.charts.push({ type: 'gauge', ...config });
+    return this;
+  }
+
+  /** 斜率图 */
+  slope(config: Omit<SlopeChart, 'type'>): this {
+    this.charts.push({ type: 'slope', ...config });
+    return this;
+  }
+
+  /** 金字塔图 */
+  pyramid(config: Omit<PyramidChart, 'type'>): this {
+    this.charts.push({ type: 'pyramid', ...config });
+    return this;
+  }
+
   /** 渲染为 SVG 字符串 */
   render(): string {
     // 简单布局：如果只有一张图，占满整个画布
@@ -107,6 +175,24 @@ export class SvgFigure {
         break;
       case 'heatmap':
         chartSvg = renderHeatmap(chart, chartW, chartH);
+        break;
+      case 'waterfall':
+        chartSvg = renderWaterfall(chart, chartW, chartH);
+        break;
+      case 'donut':
+        chartSvg = renderDonut(chart, chartW, chartH);
+        break;
+      case 'radar':
+        chartSvg = renderRadar(chart, chartW, chartH);
+        break;
+      case 'gauge':
+        chartSvg = renderGauge(chart, chartW, chartH);
+        break;
+      case 'slope':
+        chartSvg = renderSlope(chart, chartW, chartH);
+        break;
+      case 'pyramid':
+        chartSvg = renderPyramid(chart, chartW, chartH);
         break;
     }
 
@@ -176,4 +262,10 @@ export type {
   LineChart,
   ScatterChart,
   HeatmapChart,
+  WaterfallChart,
+  DonutChart,
+  RadarChart,
+  GaugeChart,
+  SlopeChart,
+  PyramidChart,
 };
