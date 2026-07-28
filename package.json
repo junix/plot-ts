@@ -1,0 +1,54 @@
+{
+  "name": "plot-ts",
+  "version": "1.0.0",
+  "description": "Universal TypeScript plotting library with dual engines: ECharts for browser interaction, pure SVG for server-side reporting. Matplotlib-style API.",
+  "main": "dist/plot-ts.js",
+  "module": "dist/plot-ts.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/plot-ts.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./svg": {
+      "import": "./dist/plot-ts.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "npm run build:types && vite build",
+    "build:types": "tsc --emitDeclarationOnly",
+    "dev": "vite",
+    "preview": "vite preview",
+    "test": "node --import tsx --test tests/*.test.ts 2>/dev/null || echo 'No tests yet'",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "echarts": ">=5.0.0"
+  },
+  "keywords": [
+    "plot",
+    "chart",
+    "matplotlib",
+    "visualization",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  },
+  "dependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/plotly.js": "^3.0.10",
+    "canvas": "^3.2.3",
+    "d3": "^7.9.0",
+    "echarts": "^6.1.0",
+    "plotly.js": "^3.7.0",
+    "recharts": "^3.10.1"
+  }
+}

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>plot-ts - 动画图表演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 30px;
+      font-size: 1.1rem;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 30px;
+    }
+
+    .chart-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .chart-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+    }
+
+    .chart-card h2 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 350px;
+    }
+
+    .card-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      justify-content: flex-end;
+    }
+
+    .card-btn {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+
+    .live-badge {
+      background: #ef4444;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .api-code {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 10px 15px;
+      margin-top: 10px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.8rem;
+      color: #555;
+      border-radius: 0 6px 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 plot-ts 动画图表库</h1>
+    <p class="subtitle">基于 ECharts 封装的 Matplotlib 风格 API - 流畅动画 · 响应式布局 · 交互友好</p>
+
+    <div class="controls">
+      <button class="btn-primary" onclick="animateAll()">🔄 重新播放所有动画</button>
+      <button class="btn-secondary" onclick="randomizeAll()">🎲 随机化数据</button>
+      <button class="btn-success" onclick="startAllStreams()">▶️ 启动全部实时流</button>
+      <button class="btn-danger" onclick="stopAllStreams()">⏹️ 停止全部流</button>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h2>📈 折线图 - 多系列动画</h2>
+        <div id="line-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('line-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.plot(x, y, { smooth: true, name: '数据' })</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>⚬ 散点图 - 弹性动画效果</h2>
+        <div id="scatter-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('scatter-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.scatter(x, y, { size: 8, opacity: 0.7 })</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>📊 柱状图 - 渐进式动画</h2>
+        <div id="bar-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('bar-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.bar(categories, values, { stack: false })</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>📈 面积图 - 层叠效果</h2>
+        <div id="area-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('area-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.area(x, y, { stack: true, opacity: 0.3 })</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>🔥 热力图 - 数据可视化</h2>
+        <div id="heatmap-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('heatmap-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.heatmap(matrix, xLabels, yLabels)</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>🦋 洛伦兹吸引子 - 混沌系统</h2>
+        <div id="lorenz-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('lorenz-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.scatter(x, y, { size: 3, color: '#667eea' })</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>🎻 小提琴图 - 分布可视化</h2>
+        <div id="violin-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-secondary card-btn" onclick="downloadChart('violin-chart')">📥 下载 PNG</button>
+        </div>
+        <div class="api-code">fig.violin(groups, distributions)</div>
+      </div>
+
+      <div class="chart-card">
+        <h2>📡 实时数据流 - <span class="live-badge">LIVE</span></h2>
+        <div id="stream-chart" class="chart-container"></div>
+        <div class="card-controls">
+          <button class="btn-success card-btn" onclick="startStream()">▶️ 开始</button>
+          <button class="btn-danger card-btn" onclick="stopStream()">⏹️ 停止</button>
+          <button class="btn-secondary card-btn" onclick="downloadChart('stream-chart')">📥 下载</button>
+        </div>
+        <div class="api-code">fig.stream(generator, 500, 50) // 500ms间隔, 保留50点</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { figure, COLORS, normalData, lorenzAttractor } from '../src/index.ts'
+
+    // Store all figures and stream stop functions
+    window.figures = {}
+    window.streams = []
+
+    // Line Chart with animation
+    function renderLineChart() {
+      const container = document.getElementById('line-chart')
+      const fig = figure(container, {
+        title: '三角函数动画演示',
+        animated: true,
+        animationDuration: 1500
+      })
+
+      const x = Array.from({ length: 100 }, (_, i) => i / 10)
+      const y1 = x.map(v => Math.sin(v) * 20 + 50)
+      const y2 = x.map(v => Math.cos(v) * 15 + 30)
+      const y3 = x.map(v => 0.5 * v + 10)
+
+      fig.plot(x, y1, { name: 'sin(x)', color: COLORS.tableau[0], smooth: true })
+         .plot(x, y2, { name: 'cos(x)', color: COLORS.tableau[1], smooth: true })
+         .plot(x, y3, { name: '线性增长', color: COLORS.tableau[2], smooth: true })
+         .xAxis({ label: 'X 轴' })
+         .yAxis({ label: 'Y 轴' })
+         .grid(true)
+         .render()
+
+      window.figures['line-chart'] = fig
+    }
+
+    // Scatter Chart
+    function renderScatterChart() {
+      const container = document.getElementById('scatter-chart')
+      const fig = figure(container, {
+        title: '散点图弹性动画效果',
+        animated: true,
+        animationDuration: 2000
+      })
+
+      const n = 200
+      const x = Array.from({ length: n }, () => Math.random() * 100)
+      const y = Array.from({ length: n }, () => Math.random() * 100)
+
+      fig.scatter(x, y, { size: 8, opacity: 0.7, color: COLORS.tableau[3] })
+         .xAxis({ label: 'X' })
+         .yAxis({ label: 'Y' })
+         .grid(true)
+         .render()
+
+      window.figures['scatter-chart'] = fig
+    }
+
+    // Bar Chart with progressive animation
+    function renderBarChart() {
+      const container = document.getElementById('bar-chart')
+      const fig = figure(container, {
+        title: '产品月度销量对比',
+        animated: true,
+        animationDuration: 1200
+      })
+
+      const categories = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+      const values1 = categories.map(() => Math.floor(Math.random() * 80 + 20))
+      const values2 = categories.map(() => Math.floor(Math.random() * 60 + 15))
+
+      fig.bar(categories, values1, { name: '产品 A', color: COLORS.tableau[0] })
+         .bar(categories, values2, { name: '产品 B', color: COLORS.tableau[1] })
+         .yAxis({ label: '销量' })
+         .grid(true)
+         .render()
+
+      window.figures['bar-chart'] = fig
+    }
+
+    // Area Chart
+    function renderAreaChart() {
+      const container = document.getElementById('area-chart')
+      const fig = figure(container, {
+        title: '多系列面积堆叠图',
+        animated: true,
+        animationDuration: 1500
+      })
+
+      const x = Array.from({ length: 20 }, (_, i) => i)
+
+      // Generate 3 series of increasing values
+      const y1 = x.map(v => 10 + v * 2 + Math.random() * 5)
+      const y2 = x.map(v => 20 + v * 1.5 + Math.random() * 5)
+      const y3 = x.map(v => 30 + v * 1 + Math.random() * 5)
+
+      fig.area(x, y1, { name: '系列 A', color: COLORS.tableau[0], stack: true, opacity: 0.4 })
+         .area(x, y2, { name: '系列 B', color: COLORS.tableau[1], stack: true, opacity: 0.4 })
+         .area(x, y3, { name: '系列 C', color: COLORS.tableau[2], stack: true, opacity: 0.4 })
+         .xAxis({ label: '时间' })
+         .yAxis({ label: '数值' })
+         .grid(true)
+         .render()
+
+      window.figures['area-chart'] = fig
+    }
+
+    // Heatmap
+    function renderHeatmapChart() {
+      const container = document.getElementById('heatmap-chart')
+      const fig = figure(container, {
+        title: '用户活跃度热力图 (小时 × 星期)',
+        animated: true,
+        animationDuration: 1000
+      })
+
+      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+      const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`)
+
+      // Generate heatmap data with pattern
+      const data = Array.from({ length: 7 }, (_, day) =>
+        Array.from({ length: 24 }, (_, hour) => {
+          // Work hours have higher activity
+          const base = (hour >= 9 && hour <= 18) ? 0.6 : 0.2
+          // Weekend has different pattern
+          const weekend = (day >= 5) ? 0.3 : 0
+          return Math.random() * 0.5 + base + weekend
+        })
+      )
+
+      fig.heatmap(data, hours, days, { showValues: false, colormap: 'viridis' })
+         .render()
+
+      window.figures['heatmap-chart'] = fig
+    }
+
+    // Lorenz Attractor
+    function renderLorenzChart() {
+      const container = document.getElementById('lorenz-chart')
+      const fig = figure(container, {
+        title: 'Lorenz 吸引子 - 蝴蝶效应',
+        animated: true,
+        animationDuration: 3000
+      })
+
+      const points = lorenzAttractor(3000)
+      const x = points.map(p => p.x)
+      const y = points.map(p => p.z) // Project z to y
+
+      fig.scatter(x, y, { size: 2, opacity: 0.6, color: '#667eea' })
+         .xAxis({ label: 'X' })
+         .yAxis({ label: 'Z' })
+         .grid(true)
+         .render()
+
+      window.figures['lorenz-chart'] = fig
+    }
+
+    // Violin Chart (using scatter to simulate distribution)
+    function renderViolinChart() {
+      const container = document.getElementById('violin-chart')
+      const fig = figure(container, {
+        title: '多组数据分布对比',
+        animated: true,
+        animationDuration: 1500
+      })
+
+      const groups = ['对照组 A', '实验组 B', '实验组 C', '对照组 D']
+      const distributions = groups.map((_, i) =>
+        normalData(300, 50 + i * 10, 8 + i * 2, i * 42)
+      )
+
+      // Use scatter to create violin-like jitter effect
+      for (let i = 0; i < groups.length; i++) {
+        const data = distributions[i]
+        const x = data.map(() => i + (Math.random() - 0.5) * 0.4)
+        fig.scatter(x, data, { size: 4, opacity: 0.5, color: COLORS.tableau[i] })
+      }
+
+      fig.xAxis({ label: '组别' })
+         .yAxis({ label: '数值' })
+         .grid(true)
+         .render()
+
+      window.figures['violin-chart'] = fig
+    }
+
+    // Real-time Streaming Chart
+    let streamStop = null
+    let streamX = 0
+
+    function renderStreamChart() {
+      const container = document.getElementById('stream-chart')
+      const fig = figure(container, {
+        title: '实时数据模拟 - 随机游走',
+        animated: true,
+        animationDuration: 300
+      })
+
+      // Initial data
+      const initialX = Array.from({ length: 20 }, (_, i) => i)
+      let y = 50
+      const initialY = initialX.map(() => {
+        y += (Math.random() - 0.48) * 5
+        return Math.max(0, Math.min(100, y))
+      })
+      streamX = 20
+
+      fig.plot(initialX, initialY, { name: '实时数据', color: COLORS.tableau[4], smooth: true })
+         .xAxis({ label: '时间 (tick)' })
+         .yAxis({ label: '数值' })
+         .grid(true)
+         .render()
+
+      window.figures['stream-chart'] = fig
+    }
+
+    // Start the stream
+    window.startStream = function() {
+      if (streamStop) return // Already running
+
+      const fig = window.figures['stream-chart']
+      if (!fig) return
+
+      streamStop = fig.stream(
+        () => {
+          streamX++
+          const lastData = fig.getRawChart().getOption().series[0].data
+          const lastY = lastData[lastData.length - 1]?.[1] ?? 50
+          const newY = Math.max(0, Math.min(100, lastY + (Math.random() - 0.48) * 5))
+          return { x: streamX, y: newY }
+        },
+        500, // 500ms per tick
+        50   // Keep 50 points
+      )
+
+      window.streams.push(streamStop)
+    }
+
+    // Stop the stream
+    window.stopStream = function() {
+      if (streamStop) {
+        streamStop()
+        streamStop = null
+      }
+    }
+
+    // Render all charts
+    function renderAll() {
+      // Clear previous
+      stopAllStreams()
+      Object.values(window.figures).forEach(fig => fig.dispose())
+      window.figures = {}
+
+      renderLineChart()
+      renderScatterChart()
+      renderBarChart()
+      renderAreaChart()
+      renderHeatmapChart()
+      renderLorenzChart()
+      renderViolinChart()
+      renderStreamChart()
+    }
+
+    // Animate all charts
+    window.animateAll = function() {
+      renderAll()
+    }
+
+    // Randomize all data
+    window.randomizeAll = function() {
+      renderAll()
+    }
+
+    // Start all streams
+    window.startAllStreams = function() {
+      window.startStream()
+    }
+
+    // Stop all streams
+    window.stopAllStreams = function() {
+      window.streams.forEach(stop => stop())
+      window.streams = []
+      streamStop = null
+    }
+
+    // Download chart
+    window.downloadChart = function(chartId) {
+      const fig = window.figures[chartId]
+      if (fig) {
+        fig.download(`${chartId}.png`)
+      }
+    }
+
+    // Initial render
+    renderAll()
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      Object.values(window.figures).forEach(fig => fig.resize())
+    })
+
+    console.log('plot-ts demo loaded successfully!')
+    console.log('Available methods:', Object.keys(window.figures))
+  </script>
+</body>
+</html>
