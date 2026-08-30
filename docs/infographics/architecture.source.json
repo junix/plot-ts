@@ -1,12 +1,12 @@
 {
-  "schema_version": "repository-architecture-infographic/v1",
+  "schema_version": "repository-architecture-infographic/v2",
   "meta": {
     "project": "plot-ts",
-    "snapshot": "794b40379",
-    "generated": "2026-08-26",
+    "snapshot": "5d42b0b9a",
+    "generated": "2026-08-30",
     "language": "zh-CN",
     "audience": "新贡献者、架构评审者与下游集成方",
-    "thesis": "把仓库的真实入口、实现分区、可执行用法与验证证据放在一条可回查的阅读路径上。",
+    "thesis": "把仓库的真实入口、实现分区、真实依赖与验证证据放在一条可回查的阅读路径上。",
     "canonical_source": "docs/infographics/architecture.svg"
   },
   "narrative": {
@@ -18,13 +18,13 @@
       "规模与依赖",
       "验证与溯源"
     ],
-    "inference_policy": "文件、计数、命令与依赖是仓库事实；职责名称仅按路径命名归类，均显式标注为推断。"
+    "inference_policy": "文件、计数、命令、依赖与最近提交是仓库事实；职责名称仅按路径命名归类，均显式标注为推断。"
   },
   "sources": {
     "readme": "README.md",
     "readme_excerpt": [
-      "双引擎 TypeScript 绘图库 —— Matplotlib 风格 API。",
-      "- 🌐 浏览器端：ECharts 渲染，支持交互、动画、流式数据 - 🖥️ 服务端：纯 SVG 渲染，零浏览器依赖，自动化报表专用"
+      "- 🌐 浏览器端：ECharts 渲染，支持交互、动画、流式数据 - 🖥️ 服务端：纯 SVG 渲染，零浏览器依赖，自动化报表专用",
+      "const fig = figure(document.getElementById('chart'), { title: '实时数据', animated: true })"
     ],
     "manifests": [
       "justfile",
@@ -33,11 +33,12 @@
     "tracked_file_formula": "git ls-files，排除构建/依赖目录",
     "line_formula": "逐个已跟踪源码文件统计非空文本行；不等同于语句数或复杂度",
     "component_formula": "按源码路径首个职责分区聚合；角色名由路径关键词推断",
-    "entrypoint_formula": "按常见入口文件名与 bin/cmd/cli/app 路径定位候选；路径存在是事实，入口职责仍需源码确认"
+    "entrypoint_formula": "按常见入口文件名与 bin/cmd/cli/app 路径定位候选；路径存在是事实，入口职责仍需源码确认",
+    "edge_formula": "在分区代表源码中静态匹配 import/use/mod/require 与相对路径引用；只绘制两端都能定位的边"
   },
   "facts": {
-    "description": "双引擎 TypeScript 绘图库 —— Matplotlib 风格 API。",
-    "tracked_files": 22,
+    "description": "- 🌐 浏览器端：ECharts 渲染，支持交互、动画、流式数据 - 🖥️ 服务端：纯 SVG 渲染，零浏览器依赖，自动化报表专用",
+    "tracked_files": 29,
     "source_files": 13,
     "source_nonblank_lines": 2686,
     "languages": [
@@ -61,7 +62,7 @@
     "components": [
       {
         "id": "component-1",
-        "label": "src/svg",
+        "label": "svg",
         "role": "实现分区",
         "file_count": 3,
         "nonblank_lines": 1161,
@@ -73,7 +74,7 @@
       },
       {
         "id": "component-2",
-        "label": "src/core",
+        "label": "core",
         "role": "核心语义",
         "file_count": 2,
         "nonblank_lines": 546,
@@ -84,7 +85,7 @@
       },
       {
         "id": "component-3",
-        "label": "src/style",
+        "label": "style",
         "role": "实现分区",
         "file_count": 2,
         "nonblank_lines": 388,
@@ -95,7 +96,7 @@
       },
       {
         "id": "component-4",
-        "label": "src/util",
+        "label": "util",
         "role": "实现分区",
         "file_count": 2,
         "nonblank_lines": 241,
@@ -106,7 +107,7 @@
       },
       {
         "id": "component-5",
-        "label": "src/data",
+        "label": "data",
         "role": "实现分区",
         "file_count": 1,
         "nonblank_lines": 233,
@@ -116,17 +117,7 @@
       },
       {
         "id": "component-6",
-        "label": "examples",
-        "role": "实现分区",
-        "file_count": 1,
-        "nonblank_lines": 56,
-        "examples": [
-          "examples/svg-demo.js"
-        ]
-      },
-      {
-        "id": "component-7",
-        "label": "src",
+        "label": "包根",
         "role": "实现分区",
         "file_count": 1,
         "nonblank_lines": 37,
@@ -137,50 +128,50 @@
     ],
     "static_edges": [
       {
-        "from": "src/svg",
-        "to": "src/util",
+        "from": "svg",
+        "to": "util",
         "evidence_files": 3,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "src/svg",
-        "to": "src/style",
+        "from": "svg",
+        "to": "style",
         "evidence_files": 2,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "examples",
-        "to": "src/svg",
+        "from": "core",
+        "to": "style",
         "evidence_files": 1,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "src/core",
-        "to": "src/style",
+        "from": "core",
+        "to": "data",
         "evidence_files": 1,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "src/core",
-        "to": "src/data",
+        "from": "包根",
+        "to": "svg",
         "evidence_files": 1,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "src",
-        "to": "src/svg",
+        "from": "包根",
+        "to": "core",
         "evidence_files": 1,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "src",
-        "to": "src/core",
+        "from": "包根",
+        "to": "style",
         "evidence_files": 1,
         "method": "静态导入/模块声明匹配"
       },
       {
-        "from": "src",
-        "to": "src/style",
+        "from": "包根",
+        "to": "util",
         "evidence_files": 1,
         "method": "静态导入/模块声明匹配"
       }
@@ -203,6 +194,20 @@
       "just demo",
       "just default",
       "npm install plot-ts echarts"
+    ],
+    "recent_commits": [
+      {
+        "date": "2026-08-29",
+        "subject": "docs: 更新架构文档"
+      },
+      {
+        "date": "2026-08-26",
+        "subject": "docs: relocate architecture infographic to docs/infographics"
+      },
+      {
+        "date": "2026-08-23",
+        "subject": "docs: add architecture visualizations"
+      }
     ],
     "test_files": 0,
     "test_examples": [],
