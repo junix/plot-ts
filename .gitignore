@@ -17,3 +17,17 @@ npm-debug.log*
 # IDE
 .vscode/
 .idea/
+# --- appended by gitignore-sweep on 2026-09-03 ---
+# Dependencies
+# Build output
+build/
+.next/
+.nuxt/
+# TypeScript build info
+*.tsbuildinfo
+# Logs
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# Coverage
+coverage/
