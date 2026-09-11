@@ -31,3 +31,6 @@ yarn-error.log*
 pnpm-debug.log*
 # Coverage
 coverage/
+
+# Generated caches, render slices, and numbered lint images (keep final PNG/PDF).
+/docs/infographics/architecture.lint.png
