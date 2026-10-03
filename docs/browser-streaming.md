@@ -1,4 +1,4 @@
-# Browser streaming series selection
+# Browser streaming series selection and retention
 
 `appendPoint(x, y, seriesIndex = 0, maxPoints = 50)` selects a Figure series by
 its zero-based creation order. `stream(generator, interval, maxPoints,
@@ -35,14 +35,32 @@ This matches ECharts' normal merge behavior: explicit IDs are matched before
 name and positional fallbacks. See the upstream
 [mapping implementation](https://github.com/apache/echarts/blob/6.0.0/src/util/model.ts#L238-L250).
 
+## Bounded history
+
+`maxPoints` defaults to 50 and must be a positive safe integer (1 through
+`Number.MAX_SAFE_INTEGER`). Zero, negatives, fractions, non-finite values,
+unsafe integers, and non-number values throw `RangeError`.
+
+For an existing series, `appendPoint` validates before changing any data or
+calling ECharts. Each successful append retains the newest `maxPoints` points
+in insertion order, including the new point. An initially oversized series is
+reduced to that bound in one trim on its first append. Changing the bound on a
+later append is supported; increasing it does not restore discarded points.
+Other series and all Figure-owned IDs stay unchanged.
+
+`stream` validates synchronously before starting its timer or invoking the
+generator, even if its selected series does not exist yet. With a valid bound,
+each tick uses the same retention rules as `appendPoint`; creating the stream
+does not trim existing data until its first append. A stream with a currently
+missing target can start updating it after that series is added. Calling
+`stream` on a disposed Figure remains a no-op, including for an invalid bound.
+
 ## Existing behavior retained
 
-- A missing series index is a no-op and does not call ECharts
+- A missing series index in `appendPoint` is a no-op, even with an invalid
+  `maxPoints`, and does not call ECharts
 - A failed ECharts update propagates its exception; Figure's local data has
   already changed, and a later successful `render()` or `update()` can resend it
-- `maxPoints` removes at most one old point per append. A series already larger
-  than that limit is not immediately reduced to the limit. Input validation and
-  a strict retention-cap redesign are separate work
 
 ## Verification boundary
 
@@ -50,7 +68,10 @@ name and positional fallbacks. See the upstream
 executes the production Figure source, and checks both outgoing option patches
 and a focused ID/position merge model. It covers repeated multi-series updates,
 duplicate names, unnamed predecessors, every builder's identity, re-rendering,
-missing indices, update failures, and timer-to-append delegation.
+missing indices, update failures, and timer-to-append delegation. Retention
+regressions cover oversized initial arrays, the default limit, one-point and
+changing limits, invalid bounds without data mutation or timer allocation,
+missing targets, disposed streams, and failure recovery.
 
 These tests do not run the ECharts renderer or prove browser animation,
 interaction, visual output, package builds, or real ECharts integration. Run

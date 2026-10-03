@@ -199,3 +199,177 @@ test('stream passes its selected series index through repeated timer ticks', () 
   ])
   assert.equal(model.series.length, 3)
 })
+
+for (const builder of ['plot', 'scatter', 'area'] as const) {
+  test(`${builder} append shrinks an oversized selected series to its newest points`, () => {
+    const { fig, model } = setup()
+    fig.plot([0], [10], { name: 'same' })
+      [builder]([0, 1, 2, 3, 4], [20, 21, 22, 23, 24], { name: 'same' })
+      .area([0], [30])
+      .render()
+    const before = copy(model.series)
+    const expected = [[3, 23], [4, 24], [5, 25]]
+
+    fig.appendPoint(5, 25, 1, 3)
+
+    assert.deepEqual(model.patches.at(-1), {
+      series: [{ id: before[1]!.id, data: expected }],
+    })
+    assert.deepEqual(model.series[0], before[0])
+    assert.deepEqual(model.series[2], before[2])
+    assert.deepEqual(model.series[1], { ...before[1], data: expected })
+    fig.render()
+    fig.update()
+    assert.deepEqual(model.series.map(series => series.id), before.map(series => series.id))
+    assert.deepEqual(model.series[1]!.data, expected)
+  })
+}
+
+test('appendPoint honors one-point, exact, growing, and maximum safe retention limits', () => {
+  const { fig, model } = setup()
+  fig.plot([], []).render()
+  fig.appendPoint(0, 10, 0, 1)
+  assert.deepEqual(model.series[0]!.data, [[0, 10]])
+  fig.appendPoint(1, 11, 0, 1)
+  assert.deepEqual(model.series[0]!.data, [[1, 11]])
+  fig.appendPoint(2, 12, 0, 2)
+  assert.deepEqual(model.series[0]!.data, [[1, 11], [2, 12]])
+  fig.appendPoint(3, 13, 0, 10)
+  assert.deepEqual(model.series[0]!.data, [[1, 11], [2, 12], [3, 13]])
+  fig.appendPoint(4, 14, 0, Number.MAX_SAFE_INTEGER)
+  assert.deepEqual(model.series[0]!.data, [[1, 11], [2, 12], [3, 13], [4, 14]])
+  fig.appendPoint(5, 15, 0, 1)
+  assert.deepEqual(model.series[0]!.data, [[5, 15]])
+})
+
+test('the default maxPoints caps an oversized series at the newest 50 points', () => {
+  const { fig, model } = setup()
+  const xs = Array.from({ length: 60 }, (_, i) => i)
+  fig.plot(xs, xs).render()
+  fig.appendPoint(60, 60)
+  assert.deepEqual(model.series[0]!.data, Array.from({ length: 50 }, (_, i) => [i + 11, i + 11]))
+})
+
+const invalidMaxPoints: unknown[] = [
+  0, -1, 1.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1,
+  Number.MAX_VALUE, null, '3', true, {},
+]
+
+for (const maxPoints of invalidMaxPoints) {
+  const label = `${typeof maxPoints} ${String(maxPoints)}`
+  test(`appendPoint rejects ${label} maxPoints before changing any series`, () => {
+    const { fig, model } = setup()
+    fig.plot([0], [10]).scatter([0, 1, 2], [20, 21, 22]).render()
+    const before = copy(model.series)
+    const calls = model.patches.length
+
+    assert.throws(() => fig.appendPoint(3, 23, 1, maxPoints as number), {
+      name: 'RangeError', message: 'maxPoints must be a positive safe integer',
+    })
+
+    assert.equal(model.patches.length, calls)
+    assert.deepEqual(model.series, before)
+    // Resending Figure's own data detects mutation hidden by a missing patch.
+    fig.update()
+    assert.deepEqual(model.series, before)
+  })
+
+  test(`stream rejects ${label} maxPoints before scheduling or generating`, () => {
+    const { harness, fig, model } = setup()
+    fig.plot([0], [10]).scatter([0], [20]).render()
+    const before = copy(model.series)
+    const calls = model.patches.length
+    let generated = 0
+
+    assert.throws(() => fig.stream(() => ({ x: ++generated, y: 21 }), 100, maxPoints as number, 1), {
+      name: 'RangeError', message: 'maxPoints must be a positive safe integer',
+    })
+
+    harness.timers.tick()
+    assert.equal(generated, 0)
+    assert.equal(harness.timers.active.size, 0)
+    assert.equal(harness.timers.callbacks.size, 0)
+    assert.equal(model.patches.length, calls)
+    fig.update()
+    assert.deepEqual(model.series, before)
+  })
+}
+
+test('missing append targets remain no-ops even with invalid maxPoints', () => {
+  const { fig, model } = setup()
+  fig.appendPoint(1, 2, 0, 0)
+  assert.equal(model.patches.length, 0)
+  fig.plot([0], [10]).render()
+  const before = copy(model.series)
+  const calls = model.patches.length
+  for (const index of [-1, 1, 100, 0.5, NaN, Infinity]) {
+    for (const maxPoints of invalidMaxPoints) {
+      assert.doesNotThrow(() => fig.appendPoint(1, 2, index, maxPoints as number))
+    }
+  }
+  assert.equal(model.patches.length, calls)
+  fig.update()
+  assert.deepEqual(model.series, before)
+})
+
+test('stream validates its bound even before a selected series exists', () => {
+  const { harness, fig } = setup()
+  assert.throws(() => fig.stream(() => ({ x: 1, y: 2 }), 100, 0, 1), RangeError)
+  assert.equal(harness.timers.callbacks.size, 0)
+})
+
+test('a valid stream may wait for its series and caps oversized data on every tick', () => {
+  const { harness, fig, model } = setup()
+  fig.plot([0], [10]).render()
+  const first = copy(model.series[0])
+  let next = 4
+  const stop = fig.stream(() => ({ x: ++next, y: 20 + next }), 100, 3, 1)
+  harness.timers.tick()
+  assert.equal(model.patches.length, 1)
+  fig.scatter([0, 1, 2, 3, 4], [20, 21, 22, 23, 24]).render()
+  const ids = model.series.map(series => series.id)
+  for (const expected of [
+    [[3, 23], [4, 24], [6, 26]],
+    [[4, 24], [6, 26], [7, 27]],
+    [[6, 26], [7, 27], [8, 28]],
+  ]) {
+    harness.timers.tick()
+    assert.deepEqual(model.series[0], first)
+    assert.deepEqual(model.series[1]!.data, expected)
+    assert.deepEqual(model.patches.at(-1), { series: [{ id: ids[1], data: expected }] })
+    assert.deepEqual(model.series.map(series => series.id), ids)
+  }
+  stop()
+  const calls = model.patches.length
+  harness.timers.tick()
+  assert.equal(model.patches.length, calls)
+  assert.equal(harness.timers.active.size, 0)
+})
+
+test('disposed figures still refuse streams without validating or acquiring timers', () => {
+  const { harness, fig } = setup()
+  fig.dispose()
+  let generated = 0
+  const stop = fig.stream(() => ({ x: ++generated, y: 1 }), 100, 0)
+  stop()
+  stop()
+  harness.timers.tick()
+  assert.equal(generated, 0)
+  assert.equal(harness.timers.callbacks.size, 0)
+})
+
+test('a failed bounded append retains the newest window for a later render', () => {
+  const { fig, model } = setup()
+  fig.plot([0], [10]).scatter([0, 1, 2, 3], [20, 21, 22, 23]).render()
+  const before = copy(model.series)
+  const chart = fig.getRawChart() as any
+  const originalSetOption = chart.setOption
+  const failure = new Error('simulated bounded update failure')
+  chart.setOption = () => { throw failure }
+  assert.throws(() => fig.appendPoint(4, 24, 1, 2), error => error === failure)
+  chart.setOption = originalSetOption
+
+  fig.render()
+  assert.deepEqual(model.series[0], before[0])
+  assert.deepEqual(model.series[1], { ...before[1], data: [[3, 23], [4, 24]] })
+})

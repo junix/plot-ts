@@ -56,6 +56,12 @@ export interface AxisConfig {
   grid?: boolean
 }
 
+function validateMaxPoints(maxPoints: number): void {
+  if (!Number.isSafeInteger(maxPoints) || maxPoints <= 0) {
+    throw new RangeError('maxPoints must be a positive safe integer')
+  }
+}
+
 export class Figure {
   private dom: HTMLElement
   private chart: ECharts
@@ -383,12 +389,13 @@ export class Figure {
   // Append new data point (for streaming data) with smooth animation
   appendPoint(x: number, y: number, seriesIndex: number = 0, maxPoints: number = 50): void {
     if (this.series[seriesIndex]) {
+      validateMaxPoints(maxPoints)
       const series = this.series[seriesIndex]
       series.data.push([x, y])
 
-      // Trim data if exceeding max points
+      // Keep the newest points even when the initial data exceeds the bound.
       if (series.data.length > maxPoints) {
-        series.data.shift()
+        series.data.splice(0, series.data.length - maxPoints)
       }
 
       // Match by stable ID: an anonymous one-item patch would target series 0.
@@ -410,6 +417,8 @@ export class Figure {
   ): () => void {
     // A disposed figure cannot acquire new background work.
     if (this.disposed) return () => {}
+    // Fail synchronously rather than throwing on each scheduled tick.
+    validateMaxPoints(maxPoints)
 
     let active = true
     const timer = setInterval(() => {
