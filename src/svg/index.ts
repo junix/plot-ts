@@ -57,6 +57,10 @@ export interface SvgFigureOptions {
   title?: string;
   accent?: AccentName;
   animated?: boolean;
+  /** Independent panels per row; defaults to a near-square grid. */
+  columns?: number;
+  /** Space between panels in pixels. Defaults to 16. */
+  gap?: number;
 }
 
 /**
@@ -79,6 +83,8 @@ export class SvgFigure {
   private height: number;
   private title: string | undefined;
   private accent: AccentName;
+  private columns: number | undefined;
+  private gap: number;
   private charts: Chart[] = [];
 
   constructor(options: SvgFigureOptions = {}) {
@@ -86,6 +92,19 @@ export class SvgFigure {
     this.height = options.height ?? 500;
     this.title = options.title;
     this.accent = options.accent ?? 'cyan';
+    this.columns = options.columns;
+    this.gap = options.gap ?? 16;
+    if (!Number.isFinite(this.width) || this.width <= 0 ||
+        !Number.isFinite(this.height) || this.height <= 0) {
+      throw new RangeError('SVG figure width and height must be finite positive numbers');
+    }
+    if (this.columns !== undefined &&
+        (!Number.isSafeInteger(this.columns) || this.columns < 1)) {
+      throw new RangeError('SVG figure columns must be a positive safe integer');
+    }
+    if (!Number.isFinite(this.gap) || this.gap < 0) {
+      throw new RangeError('SVG figure gap must be a finite non-negative number');
+    }
   }
 
   /** 柱状图 */
@@ -150,8 +169,6 @@ export class SvgFigure {
 
   /** 渲染为 SVG 字符串 */
   render(): string {
-    // 简单布局：如果只有一张图，占满整个画布
-    // 多张图时采用简单的网格布局（TODO）
     const chart = this.charts[0];
     if (!chart) {
       return this.wrapSvg('');
@@ -159,42 +176,12 @@ export class SvgFigure {
 
     // 标题留白
     const titleH = this.title ? 40 : 0;
-    const chartW = this.width;
     const chartH = this.height - titleH;
-
-    let chartSvg = '';
-    switch (chart.type) {
-      case 'column':
-        chartSvg = renderColumn(chart, chartW, chartH);
-        break;
-      case 'line':
-        chartSvg = renderLine(chart, chartW, chartH);
-        break;
-      case 'scatter':
-        chartSvg = renderScatter(chart, chartW, chartH);
-        break;
-      case 'heatmap':
-        chartSvg = renderHeatmap(chart, chartW, chartH);
-        break;
-      case 'waterfall':
-        chartSvg = renderWaterfall(chart, chartW, chartH);
-        break;
-      case 'donut':
-        chartSvg = renderDonut(chart, chartW, chartH);
-        break;
-      case 'radar':
-        chartSvg = renderRadar(chart, chartW, chartH);
-        break;
-      case 'gauge':
-        chartSvg = renderGauge(chart, chartW, chartH);
-        break;
-      case 'slope':
-        chartSvg = renderSlope(chart, chartW, chartH);
-        break;
-      case 'pyramid':
-        chartSvg = renderPyramid(chart, chartW, chartH);
-        break;
-    }
+    // Keep the single-chart markup unchanged. Multiple charts get independent
+    // viewports and domains, in the order they were added.
+    const chartSvg = this.charts.length === 1
+      ? renderChart(chart, this.width, chartH)
+      : this.renderPanels(chartH);
 
     const titleElem = this.title
       ? h('text', {
@@ -208,6 +195,29 @@ export class SvgFigure {
       : '';
 
     return this.wrapSvg(join(titleElem, h('g', { transform: `translate(0, ${titleH})` }, chartSvg)));
+  }
+
+  private renderPanels(height: number): Html {
+    const count = this.charts.length;
+    const columns = Math.min(this.columns ?? Math.ceil(Math.sqrt(count)), count);
+    const rows = Math.ceil(count / columns);
+    const panelWidth = (this.width - this.gap * (columns - 1)) / columns;
+    const panelHeight = (height - this.gap * (rows - 1)) / rows;
+    if (!Number.isFinite(panelWidth) || !Number.isFinite(panelHeight) ||
+        panelWidth < 160 || panelHeight < 120) {
+      throw new RangeError(
+        'SVG grid panels must be at least 160 × 120 pixels; increase the figure size or reduce columns/gap',
+      );
+    }
+    return join(...this.charts.map((chart, index) => {
+      const x = (index % columns) * (panelWidth + this.gap);
+      const y = Math.floor(index / columns) * (panelHeight + this.gap);
+      return h('g', {
+        'data-panel-index': index,
+        'data-chart-type': chart.type,
+        transform: `translate(${x}, ${y})`,
+      }, renderChart(chart, panelWidth, panelHeight));
+    }));
   }
 
   /** 渲染为完整的 HTML 页面（带样式和动画） */
@@ -235,6 +245,22 @@ export class SvgFigure {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
   ${content}
 </svg>`;
+  }
+}
+
+/** Dispatch each panel through the same renderer used by single-chart figures. */
+function renderChart(chart: Chart, width: number, height: number): Html {
+  switch (chart.type) {
+    case 'column': return renderColumn(chart, width, height);
+    case 'line': return renderLine(chart, width, height);
+    case 'scatter': return renderScatter(chart, width, height);
+    case 'heatmap': return renderHeatmap(chart, width, height);
+    case 'waterfall': return renderWaterfall(chart, width, height);
+    case 'donut': return renderDonut(chart, width, height);
+    case 'radar': return renderRadar(chart, width, height);
+    case 'gauge': return renderGauge(chart, width, height);
+    case 'slope': return renderSlope(chart, width, height);
+    case 'pyramid': return renderPyramid(chart, width, height);
   }
 }
 

@@ -112,6 +112,40 @@ await fs.writeFile('report.html', html)
 console.log('✅ 报告已生成')
 ```
 
+### SVG 多图网格
+
+连续添加图表会按添加顺序排入独立面板，默认采用接近正方形的网格。
+每个面板使用自己的数据范围；单图仍保持原有输出。
+`columns` 指定每行面板数，`gap` 指定面板间距（默认 16 px）。
+
+```typescript
+import { svg } from 'plot-ts'
+
+const report = svg.figure({
+  width: 1000, height: 760,
+  title: '季度概览', columns: 2, gap: 32,
+})
+  .bar({ categories: ['Q1', 'Q2'], series: [{ values: [32, 45] }] })
+  .line({ x: [0, 1, 2], series: [{ y: [4, 8, 6] }] })
+  .donut({ items: [{ name: 'A', value: 60 }, { name: 'B', value: 40 }] })
+  .scatter({ points: [{ x: 1, y: 3 }, { x: 2, y: 7 }] })
+
+const html = report.renderHtml()
+```
+
+尺寸必须为有限正数，`columns` 必须为正整数，`gap` 必须为有限非负数。
+多图面板至少需要 160×120 px（含标题时会先预留 40 px）；空间不足会抛出
+`RangeError`，可增大画布或调整列数和间距。复杂标签通常需要更大的面板。
+此最小尺寸限制不适用于单图。空画布仍输出空 SVG。
+
+源码目录安装开发依赖后，可运行确定性的 2×2 示例和十种图表的完整网格：
+
+```bash
+node --import tsx examples/svg-grid-demo.ts out
+# 生成 out/svg-grid.svg、out/svg-grid.html、
+#      out/svg-gallery.svg、out/svg-gallery.html
+```
+
 ---
 
 ## 🎯 API 设计原则
