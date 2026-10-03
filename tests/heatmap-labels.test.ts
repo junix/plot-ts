@@ -64,20 +64,24 @@ test('empty Y labels preserve titled grids with a normal labelled neighbor', () 
   assert.match(cells(output)[4]!, /x="45" y="2" width="122.5" height="98"/);
 });
 
-// Full-output digests captured from the published 12d3e7d baseline.
+// Digests from the published 12d3e7d baseline. Exclude newly rendered X text
+// when checking the original cells and Y labels; their bytes remain unchanged.
 for (const [name, labels, expected] of [
   ['omitted labels', {}, 'b089fdbdd4a3fd65574bb09c0adc2ce40e2031ea1abbe11f197876c67286bfda'],
   ['nonempty labels', { xLabels: ['A', 'B'], yLabels: ['one', 'three'] }, 'a7fc3c96f074cb6e34df36e14a7a69707030cbfcb0ca8292376c04c9605faf83'],
   ['empty-string labels', { yLabels: ['', ''] }, 'a8673283f4fa3f2e605a29a0cdce4333ea5581b04ade0895d744e519c1ea94ba'],
 ] as const) {
-  test(`${name} keep byte-identical heatmap output`, () => {
+  test(`${name} keep byte-identical original cells and Y labels`, () => {
     const config = { data: [[1, 2], [3, 4]], ...labels };
     const output = render({
       data: config.data,
       ...('xLabels' in config ? { xLabels: [...config.xLabels] } : {}),
       ...('yLabels' in config ? { yLabels: [...config.yLabels] } : {}),
     });
-    assert.equal(createHash('sha256').update(output).digest('hex'), expected);
+    const originalOutput = 'xLabels' in config
+      ? output.replace(/<text\b[^>]*text-anchor="middle"[^>]*>.*?<\/text>/g, '')
+      : output;
+    assert.equal(createHash('sha256').update(originalOutput).digest('hex'), expected);
   });
 }
 

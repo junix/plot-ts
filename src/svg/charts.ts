@@ -413,6 +413,16 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
     });
   }
 
+  // X labels use the existing bottom margin and align with actual columns.
+  c.xLabels?.slice(0, cols).forEach((label, col) => {
+    labels.push(text(
+      p.x0 + (col + 0.5) * cellW,
+      p.y0 + p.h + 16,
+      label,
+      { size: 10, anchor: 'middle', fill: 'rgba(5, 28, 44, 0.58)' }
+    ));
+  });
+
   return svg(width, height, join(...cells, ...labels));
 }
 

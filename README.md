@@ -162,6 +162,16 @@ node --import tsx examples/svg-grid-demo.ts out
 
 ---
 
+### SVG heatmap column labels
+
+`figure().heatmap({ data, xLabels, yLabels })` renders each provided X label
+centered below its data column, using the existing 24px bottom margin. Fewer
+labels leave the remaining columns unlabeled; extra X labels are ignored. Text
+is XML-escaped. Omitted X labels keep the existing 2px margin, while `xLabels: []`
+retains the existing 24px layout without text. Y-label layout is unchanged.
+
+---
+
 ## 🎯 API 设计原则
 
 ### Matplotlib 风格
