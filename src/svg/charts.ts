@@ -70,7 +70,7 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
   // 上界：有轴用 axis 阶梯（保证刻度好看），无轴用细阶梯（不浪费画布）
   const nice = showAxis ? niceCeilForAxis : niceCeil;
   const rawMax = c.max ?? nice(maxOf(totals));
-  const min = Math.min(0, stacked ? niceCeilSeries(negativeStackMin) : niceFloorSeries(c.series));
+  const min = Math.min(0, stacked ? niceCeilSeries(negativeStackMin) : niceFloorSeries(c.series, c.categories));
   const max = rawMax <= min ? min + 1 : rawMax;
 
   // 定义绘图区留白
@@ -988,12 +988,14 @@ function maxOfSeries(series: ColumnChart['series'], idx: number): number {
   return m === -Infinity ? 0 : m;
 }
 
-function niceFloorSeries(series: ColumnChart['series']): number {
+function niceFloorSeries(series: ColumnChart['series'], categories: string[]): number {
   let m = Infinity;
   for (const ser of series) {
-    for (const v of ser.values) {
+    // Match the rendering loop: unpaired values cannot affect the domain.
+    categories.forEach((_, i) => {
+      const v = ser.values[i];
       if (v !== null && v !== undefined && Number.isFinite(v) && v < m) m = v;
-    }
+    });
   }
   return niceCeilSeries(m);
 }
