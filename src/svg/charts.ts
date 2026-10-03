@@ -423,7 +423,8 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
     runningTotal += v;
   }
 
-  const allValues = [...c.values, runningTotal];
+  // 每根柱子的起点和终点都参与定标，不能只用增量和最终合计。
+  const allValues = [...totals, runningTotal];
   const min = Math.min(0, Math.min(...allValues));
   const max = Math.max(0, niceCeil(Math.max(...allValues)));
   const zeroY = yOf(p, Math.max(min, 0), min, max);
