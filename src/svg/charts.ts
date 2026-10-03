@@ -726,7 +726,9 @@ export function renderGauge(c: GaugeChart, width: number, height: number): Html 
     const x4 = cx + innerR * Math.cos(a1);
     const y4 = cy + innerR * Math.sin(a1);
 
-    const path = `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 0,1 ${n(x2)},${n(y2)} L${n(x3)},${n(y3)} A${n(innerR)},${n(innerR)} 0 0,0 ${n(x4)},${n(y4)} Z`;
+    // The 252-degree dial exceeds a semicircle above 5/7 of its domain.
+    const largeArc = (band.to - band.from) / max > 5 / 7 ? 1 : 0;
+    const path = `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 ${largeArc},1 ${n(x2)},${n(y2)} L${n(x3)},${n(y3)} A${n(innerR)},${n(innerR)} 0 ${largeArc},0 ${n(x4)},${n(y4)} Z`;
     bands.push(h('path', { d: path, fill: band.color, opacity: 0.8 }));
   });
 
