@@ -18,6 +18,9 @@ export const COLORS = {
   // Monochrome blues
   blues: ['#f7fbff', '#deebf7', '#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08519c', '#08306b'],
 
+  // Heat: black -> red -> yellow -> white
+  heat: ['#000000', '#ff0000', '#ffff00', '#ffffff'],
+
   // Diverging red-blue
   rdbu: ['#67001f', '#b2182b', '#d6604d', '#f4a582', '#fddbc7', '#d1e5f0', '#92c5de', '#4393c3', '#2166ac', '#053061'],
 }

@@ -56,6 +56,16 @@ export interface AxisConfig {
   grid?: boolean
 }
 
+type HeatmapColormap = NonNullable<HeatmapConfig['colormap']>
+
+function resolveHeatmapColormap(colormap: HeatmapConfig['colormap']): HeatmapColormap {
+  switch (colormap) {
+    case undefined: return 'viridis'
+    case 'viridis': case 'plasma': case 'blues': case 'rdbu': case 'heat': return colormap
+    default: throw new RangeError('Unsupported heatmap colormap. Use viridis, plasma, blues, rdbu, or heat.')
+  }
+}
+
 function validateMaxPoints(maxPoints: number): void {
   if (!Number.isSafeInteger(maxPoints) || maxPoints <= 0) {
     throw new RangeError('maxPoints must be a positive safe integer')
@@ -67,6 +77,7 @@ export class Figure {
   private chart: ECharts
   private config: FigureConfig
   private series: any[] = []
+  private heatmapColormap: HeatmapColormap | undefined
   private xAxisConfig: any = {}
   private yAxisConfig: any = {}
   private titleText: string = ''
@@ -238,6 +249,12 @@ export class Figure {
     yLabels: string[] = [],
     config: HeatmapConfig = {}
   ): this {
+    // One visualMap is shared by all heatmaps. Later omissions inherit its palette.
+    const colormap = resolveHeatmapColormap(config.colormap === undefined ? this.heatmapColormap : config.colormap)
+    if (this.heatmapColormap !== undefined && colormap !== this.heatmapColormap) {
+      throw new RangeError('Heatmaps in one Figure must use the same colormap.')
+    }
+
     // Convert matrix to ECharts heatmap format
     const heatmapData: any[] = []
     for (let i = 0; i < data.length; i++) {
@@ -245,8 +262,6 @@ export class Figure {
         heatmapData.push([j, i, data[i]![j]])
       }
     }
-
-    // Colormap configuration
 
     this.series.push({
       id: `plot-ts-series-${this.series.length}`,
@@ -256,6 +271,7 @@ export class Figure {
       itemStyle: { borderWidth: 1 },
       animationDuration: this.config.animated ? this.config.animationDuration : 0,
     })
+    this.heatmapColormap = colormap
 
     this.xAxisConfig.type = 'category'
     this.xAxisConfig.data = xLabels.length ? xLabels : Array.from({ length: data[0]?.length || 0 }, (_, i) => String(i))
@@ -500,6 +516,9 @@ export class Figure {
     // Add visualMap for heatmap
     if (this.series.some(s => s.type === 'heatmap')) {
       option.visualMap = {
+        // Never apply a heatmap palette to a line, scatter, or other series.
+        seriesIndex: this.series.flatMap((series, index) => series.type === 'heatmap' ? [index] : []),
+        dimension: 2,
         min: Math.min(...this.series.filter(s => s.type === 'heatmap')[0].data.map((d: [number, number, number]) => d[2])),
         max: Math.max(...this.series.filter(s => s.type === 'heatmap')[0].data.map((d: [number, number, number]) => d[2])),
         calculable: true,
@@ -507,7 +526,7 @@ export class Figure {
         left: 'center',
         bottom: '5%',
         inRange: {
-          color: COLORS.viridis
+          color: [...COLORS[this.heatmapColormap ?? 'viridis']]
         }
       }
     }

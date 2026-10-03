@@ -105,6 +105,29 @@ fig.xAxis({ label: 'Time', min: 0, max: 100 })
    .update()
 ```
 
+### Browser heatmap colormaps
+
+`fig.heatmap(data, xLabels, yLabels, { colormap })` honors `viridis`, `plasma`,
+`blues`, `rdbu`, and `heat`. The first four reuse the existing `COLORS` ramps;
+`heat` adds black → red → yellow → white in `src/style/palette.ts`. ECharts
+interpolates between the provided stops. The first heatmap defaults to `viridis`.
+
+A browser Figure has one shared pair of axes and one horizontal color controller.
+All its heatmaps share a palette: later omitted or `undefined` selections inherit
+the first heatmap's choice, and an explicit matching selection is accepted.
+An explicit conflicting choice, or any unsupported runtime value (including
+`null`), throws `RangeError` in `heatmap()` before adding a series or changing
+axes, even for an empty matrix. Use separate Figures for independent color scales.
+The visualMap targets heatmap series only, using their third data dimension;
+line, scatter, and other series keep their own colors. `render()` and `update()`
+preserve the selected palette.
+
+```typescript
+fig.heatmap([[0, 1], [2, 3]], ['A', 'B'], ['Top', 'Bottom'], { colormap: 'plasma' })
+   .heatmap([[3, 2], [1, 0]]) // inherits plasma
+   .render()
+```
+
 ### 服务端 SVG 渲染
 ```typescript
 // Node.js 环境，不需要浏览器
