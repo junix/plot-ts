@@ -21,7 +21,7 @@
     "build:types": "tsc --emitDeclarationOnly",
     "dev": "vite",
     "preview": "vite preview",
-    "test": "node --import tsx --test tests/*.test.ts 2>/dev/null || echo 'No tests yet'",
+    "test": "node --import tsx --test tests/*.test.ts",
     "lint": "tsc --noEmit"
   },
   "peerDependencies": {

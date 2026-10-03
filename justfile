@@ -34,9 +34,9 @@ install:
 # Clean build artifacts
 clean: clean-artifacts
 
-# Build + test
+# Run the same fail-closed test suite as npm test
 test:
-    @echo "No tests yet"
+    npm test
 
 # Show help
 help:
