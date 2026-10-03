@@ -471,6 +471,7 @@ export class Figure {
         min: this.yAxisConfig.min,
         max: this.yAxisConfig.max,
         splitLine: this.yAxisConfig.splitLine,
+        data: this.yAxisConfig.data,
         axisLabel: {
           fontSize: 11
         }
