@@ -1,8 +1,10 @@
 # plot-ts verification, 2026-10-03
 
-This report covers the current SVG changes: fail-closed test commands, title escaping,
-number formatting, independent chart panels, and finite line domains/gaps. It does
-not certify the installed package entrypoints or the browser/ECharts renderer.
+This report records the earlier panel/line checkpoint and distinct later SVG-edge
+checkpoints. It covers fail-closed test commands, escaped output, number formatting,
+independent chart panels, finite domains, shared scales, zero-data repairs, and
+bounded input policies. It does not certify the installed package entrypoints or the
+browser/ECharts renderer.
 
 ## Recorded checkpoints
 
@@ -11,18 +13,21 @@ not certify the installed package entrypoints or the browser/ECharts renderer.
 | 18db3bf752ad45183d48a9a7a542e307a3d706b1 | 64 passed | 9 helper tests, 5 title tests, 50 formatting tests |
 | d8e1f301ba7ecad434e5a351c8df21a229569b53 | 81 passed | Previous 64 plus 17 grid tests |
 | c201ba4e6927f6dd8e00699f78ecbf26b5a46ad8 | 102 passed | Previous 81 plus 21 line-domain/gap tests |
-| c1737dc08daec169df525b248ba31cbc834b147e | 102 passed; focused strict types passed | Test-only optional-title correction; final fresh-source rerun |
+| c1737dc08daec169df525b248ba31cbc834b147e | 102 passed; focused strict types passed | Test-only optional-title correction; earlier panel/line final rerun |
+| 12d3e7d62779e365d51ae6b0a686262a0171981d | 215 passed in Node and Bun; focused strict types passed | Eight-repair SVG-edge checkpoint; corpus identified remaining label/option defects |
+| 11e0e607a3affae5c72b9f1806ba9c751baa7fa0 | 327 passed in Node and Bun; focused strict types passed | Input/option repairs; corpus retained one extra grouped-bar value/domain witness |
+| 6a6f50d42a869625ea224af49d1db632b30311bf | 351 passed in Node and Bun; focused strict types passed | Later combined SVG-edge checkpoint |
 
-The final snapshot is [c1737dc](https://github.com/junix/plot-ts/commit/c1737dc08daec169df525b248ba31cbc834b147e).
+The earlier panel/line snapshot is [c1737dc](https://github.com/junix/plot-ts/commit/c1737dc08daec169df525b248ba31cbc834b147e).
 All 23 fetched source/configuration/test files were verified against their Git blob
-SHAs before the final checks. Both Node and Bun passed all 102 tests.
+SHAs before that checkpoint's checks. Both Node and Bun passed all 102 tests.
 
 The broader strict check at c201ba4 found one test-helper-only problem: passing
 `{ title: undefined }` violates `exactOptionalPropertyTypes`. The one-line test
-correction in c1737dc omits the optional property when undefined. The final strict
-check includes the entire SVG graph, all six test files and the example, and passes.
+correction in c1737dc omits the optional property when undefined. The strict
+check for that snapshot includes the entire SVG graph, all six test files and the example, and passes.
 
-## Offline checks used
+## Earlier panel/line checkpoint checks (102 tests)
 
 - Node 24.19.0 runs the test files after esbuild 0.27.7 bundles their TypeScript imports
 - Bun 1.3.14 independently runs the same TypeScript test files directly
@@ -38,6 +43,69 @@ Declared TypeScript is 7.x; the installed 5.9.3 compiler check is supplemental.
 The actual npm test command reports a missing tsx loader in the offline snapshot.
 Full Vite build, npm package import/export checks and browser interactions remain
 unverified. No dependency versions or lockfile were changed to obtain a pass.
+
+## SVG edge checkpoint: 6a6f50d42a86
+
+This is a separate later checkpoint at [6a6f50d42a869625ea224af49d1db632b30311bf](https://github.com/junix/plot-ts/commit/6a6f50d42a869625ea224af49d1db632b30311bf). It includes all earlier panel/line changes and the bounded repairs below.
+
+| Published source commit | Repair | Bounded contract |
+| --- | --- | --- |
+| [1a9f6216c53d](https://github.com/junix/plot-ts/commit/1a9f6216c53dbcb07bae846597db11b1dc161ba6) | Scatter constant/empty domains | Constant X is centered; nonfinite coordinate pairs are omitted and no-finite-pair domains stay finite |
+| [4110e98030cd](https://github.com/junix/plot-ts/commit/4110e98030cd7308e594632a35e086a2c14a22a0) | Constant heatmap palette | Constant finite cells explicitly use the Viridis midpoint `#26838e`; the later palette-option repair extends this policy to the selected palette |
+| [c9a8aad06274](https://github.com/junix/plot-ts/commit/c9a8aad062747d1969fa7d2417bc863661bb8c84) | Singleton donut ring | One positive part uses valid full-ring geometry, with its hole and original color index retained |
+| [92c40ef72a4b](https://github.com/junix/plot-ts/commit/92c40ef72a4bfbf2ff2ae3d3f4d3d49e37aa4dfb) | Waterfall cumulative extent | The automatic domain includes zero and every cumulative endpoint |
+| [82d9829fbdd2](https://github.com/junix/plot-ts/commit/82d9829fbdd273122165c23430d61f68dc01a017) | Signed stacked bars | Independent positive/negative totals and accumulators preserve signed magnitudes and original all-positive order |
+| [4731ebee874a](https://github.com/junix/plot-ts/commit/4731ebee874a687643e256d0cb511b551ddadfdb) | Radar shared scale | One global automatic maximum covers every series and declared axis, with valid explicit axis maxima overriding it |
+| [6f2427a752c4](https://github.com/junix/plot-ts/commit/6f2427a752c44ef79f187ef2689e5cf729793bc1) | Gauge zero domain | Omitted max with zero value uses `0..1`; local finite-value and positive-explicit-max validation is documented |
+| [12d3e7d62779](https://github.com/junix/plot-ts/commit/12d3e7d62779e365d51ae6b0a686262a0171981d) | Pyramid zero domain | All-zero layers retain finite centered zero-width marks and labels; negative/nonfinite layers are rejected locally |
+| [c27df51568f2](https://github.com/junix/plot-ts/commit/c27df51568f2c0a07b0259b55cb684f34a4a84b0) | Empty heatmap Y labels | Explicit `yLabels: []` uses the same no-label margin as omitted labels |
+| [e3b15671609f](https://github.com/junix/plot-ts/commit/e3b15671609fcb3a9b273906ce94bd5b4a4be22b) | Wide custom gauge bands | Custom band spans over 180 degrees select the large arc on both annular boundaries, preserving opposite outer/inner winding |
+| [98edd51e2e79](https://github.com/junix/plot-ts/commit/98edd51e2e7908b0ef2bae88f6dd54b33f8c44b9) | Heatmap X labels | Requested X labels are centered below their cells, escaped, and contained in the already reserved bottom margin |
+| [efad6663efde](https://github.com/junix/plot-ts/commit/efad6663efde24efa44bac712fcc2d526013545a) | Heatmap palette options | Viridis keeps its original colors; plasma and blues use the existing repository palettes, including selected-palette midpoint handling for constant matrices |
+| [11e0e607a3af](https://github.com/junix/plot-ts/commit/11e0e607a3affae5c72b9f1806ba9c751baa7fa0) | Numeric/data-shape boundaries | Local render-time RangeErrors prevent nonfinite observations, ragged heatmaps, mismatched waterfall counts, and invalid rendered scatter sizes from reaching SVG geometry |
+| [6a6f50d42a86](https://github.com/junix/plot-ts/commit/6a6f50d42a869625ea224af49d1db632b30311bf) | Bar category-paired domain | Only finite category-paired values influence inferred bar domains; undrawn extras are ignored and existing short-series omission is retained |
+
+The radar automatic policy is intentionally global across axes as well as series. This preserves ordinary single-series shapes while comparing magnitudes across series; it supersedes the audit's earlier per-axis automatic-scale proposal. Undeclared extra finite values do not change the inferred scale. Empty/all-zero data uses 1; valid explicit axis.max retains its existing clipping behavior. Invalid explicit radar maxima still fall back to the automatic scale.
+
+Gauge has a different, explicitly documented local contract: its value must be finite and an explicit max must be finite and positive. A finite negative value retains the zero-end clamp only with an explicit positive max. Pyramid values must be finite and nonnegative. Gauge/pyramid reject inferred scales that cannot be represented as finite positive domains.
+
+The final data-boundary repair adds local RangeErrors at render time for nonfinite observations in heatmap, waterfall, donut, radar, and slope; ragged heatmap rows; unequal waterfall category/value counts; and nonfinite or negative scatter sizes on rendered finite coordinate pairs. Line/scatter coordinate omission remains intact, including original scatter animation indexing, default size 4, and explicit size 0. Radar short/empty/sparse arrays retain their zero fallback; supplied nonfinite extras are rejected even when beyond the declared axes. Finite signed data and empty valid inputs retain their existing behavior. These are bounded per-renderer contracts, not a new global schema or sign policy.
+
+Wide gauge bands now select the SVG large-arc flag on both boundaries for spans over 180 degrees, retaining the outer clockwise/inner counterclockwise winding. Ordinary/default/narrow-band geometry is unchanged. This does not add band validation, clamping, or normalization.
+
+Heatmap X labels are escaped, centered under their corresponding cells, and drawn in the existing bottom margin; extra labels are ignored and missing labels are left blank. Existing geometry and Y labels are retained. Omitted X labels keep the prior 2px bottom margin; an explicit empty X-label array keeps the prior 24px margin. Default/explicit Viridis preserves its existing colors. Plasma (10 colors) and Blues (9 colors) reuse the repository's existing palette arrays; constant matrices use the selected midpoint, including Plasma's upper-middle #d8576b. Unknown runtime colormap names now raise RangeError, even for empty data.
+
+The final bar-domain repair uses only finite values paired with rendered categories when inferring the domain. Extra values are ignored; short series, nulls, and nonfinite values retain omission. Explicit max and the signed-stack semantics are unchanged.
+
+The exact render-time error contracts are documented in [SVG numeric-data boundaries](svg-data-validation.md).
+
+### Final-source verification
+
+The preceding eight-repair snapshot [12d3e7d62779](https://github.com/junix/plot-ts/commit/12d3e7d62779e365d51ae6b0a686262a0171981d) independently passed all 215 tests in Node and Bun, strict TypeScript, and the two demo raster checks, with 31 source/configuration/test blobs verified. Its 118-case sweep also isolated the remaining ordinary-input defect for explicit empty heatmap Y labels and confirmed separate gauge-band and heatmap display-option defects. Their bounded corrections are included in the final checkpoint below.
+
+The subsequent [11e0e607a3af](https://github.com/junix/plot-ts/commit/11e0e607a3affae5c72b9f1806ba9c751baa7fa0) checkpoint passed 327 Node/Bun source tests after the display-option and data-boundary repairs. Its bounded replay had 94 structurally clean SVGs and 24 intended rejections, but still correctly reported the existing unmatched grouped-bar value/domain witness. The last narrow paired-domain repair closes that witness at the final checkpoint.
+
+- All **39 freshly fetched source/configuration/test/example files** matched their Git blob SHAs before and after execution at 6a6f50d42a869625ea224af49d1db632b30311bf
+- **351/351 tests passed under Node 24.19.0 with esbuild 0.27.7, and 351/351 under Bun 1.3.14**, across 20 test files
+- Strict TypeScript 5.9.3 checking passed for the entire SVG dependency graph, all 20 test files, and all three committed SVG examples, including noUncheckedIndexedAccess and exactOptionalPropertyTypes. The package-declared TypeScript 7 toolchain remains unavailable
+- The actual svg-grid-demo.ts, svg-heatmap-labels.ts, and svg-heatmap-colormaps.ts scripts ran in both Node and Bun. All eight SVG/HTML output pairs were byte-identical
+- All six distinct SVG outputs parsed as XML and rasterized using Sharp 0.35.4. The six Node/Bun PNG pairs were byte-identical and all six final PNGs were visually inspected. Both composed figures retained all 14 visible panels: 1000×760 with four panels and 1600×1480 with ten. The label example is 720×360; each of the three palette examples is 720×300. Label/cell counts and distinct palette sequences were checked
+- The exact npm test command still exits 1 because tsx is missing. Full Vite, installed-package exports, browser interaction/animation, and CI acceptance remain unverified; no dependency download or error-suppression workaround was used
+
+### Bounded 118-case recheck
+
+The original **118 cases across the same ten SVG families** were replayed without adding or changing a case. All 118 outcomes agreed between Node and Bun: **94 rendered SVGs and 24 intentional RangeError rejections**. All 94 returned SVG byte strings matched across the runtimes, parsed as XML, and rasterized with Sharp. The numeric-size/missing-fill scan and the existing finite semantic checks both found **zero flagged cases**.
+
+The original 13 correctness witnesses pass; the portable 13-witness suite passes in both Node and Bun. The portable diagnostic now exits **0**, including the same grouped-bar counterexample that correctly kept the preceding checkpoint nonzero. The original and portable corpus configurations, case order, outcomes, and SVG bytes match. Rejected inputs are recorded as exceptions, not fake or successfully parsed SVGs.
+
+The 24 rejections implement the documented local numeric/data-shape contracts. The classifications also preserve six intentional-omission cases, three documented radar partial/extra-value cases, and eight finite policy-sensitive probes where no defect was detected. These classifications do not establish a universal validity policy or correctness for untested inputs.
+
+See the [detailed bounded report](verification/svg-edge-audit-2026-10-03.md), [exact classified case record](verification/svg-edge-audit-2026-10-03.json), and [portable replay instructions](../tools/svg-edge-audit/README.md). The original baseline and intermediate failures remain recorded; no failure was suppressed to make the final result green.
+
+These checks exercise exported repository source directly. They do not repair or
+verify the installed `plot-ts/svg` package path, and do not establish the declared
+npm/tsx/Vite workflow, browser behavior, or CI success. A parseable or rasterizable
+SVG is not by itself proof of correct numeric geometry or chart semantics.
 
 ## Repeat with the declared project tools
 
@@ -72,10 +140,14 @@ node "$TSC_NODE_ENTRY" --noEmit --strict \
   --target ES2022 --module NodeNext --moduleResolution NodeNext \
   --types node --typeRoots "$NODE_TYPE_ROOTS" --skipLibCheck \
   --noUncheckedIndexedAccess --exactOptionalPropertyTypes \
-  src/svg/index.ts tests/*.test.ts examples/svg-grid-demo.ts
+  src/svg/index.ts tests/*.test.ts examples/*.ts
 node "$ESBUILD_NODE_ENTRY" examples/svg-grid-demo.ts \
   --bundle --platform=node --format=esm --outfile="$VERIFY_OUT/demo.mjs"
 node "$VERIFY_OUT/demo.mjs" "$VERIFY_OUT/rendered"
+node "$ESBUILD_NODE_ENTRY" examples/svg-heatmap-labels.ts examples/svg-heatmap-colormaps.ts \
+  --bundle --platform=node --format=esm \
+  --outdir="$VERIFY_OUT/examples" --out-extension:.js=.mjs
+(cd "$VERIFY_OUT/rendered" && node ../examples/svg-heatmap-labels.mjs && node ../examples/svg-heatmap-colormaps.mjs)
 ```
 
 These source-direct checks do not exercise package.json exports. In particular,
@@ -85,9 +157,6 @@ import tests without DOM or ECharts.
 
 ## Remaining targeted gaps
 
-- Constant scatter x coordinates and constant heatmap values need degenerate-domain policies
-- Heatmap xLabels and requested colormap are not yet honored
-- Waterfall ranges must include every intermediate cumulative value
-- Browser configuration, streaming-series selection and disposal need separate tests
-- SVG output is deterministic and structurally tested; browser animation and
-  interaction require their own runtime validation
+- **No blanket sign/configuration policy was added:** finite signed observations retain their existing behavior outside the specifically documented gauge/pyramid rules. Negative donut parts, negative radar samples, custom gauge-band normalization, and invalid explicit radar maxima were not redesigned. Radar's existing invalid-max fallback remains distinct from gauge's rejection policy
+- **Layout and extreme-value limits remain:** very long labels, bar labels at a plot boundary, the retained half-pixel minimum for zero/tiny bars, panels smaller than their chart margins, and extreme-magnitude numerical overflow remain outside the verified envelope
+- **Release/runtime gates remain open:** fix the installed `./svg` export with a real multi-entry build, declarations, and packed-package Node imports without DOM/ECharts. Run the declared npm/tsx/TypeScript 7/Vite workflow separately. Browser configuration, streaming selection, disposal, animation, and interaction still require browser-specific tests
