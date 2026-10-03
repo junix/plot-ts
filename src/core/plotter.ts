@@ -109,26 +109,23 @@ export class Figure {
 
   // Configure X axis
   xAxis(config: AxisConfig): this {
-    this.xAxisConfig = {
-      name: config.label,
-      min: config.min,
-      max: config.max,
-      type: config.log ? 'log' : 'value',
-      ...this.xAxisConfig
-    }
+    this.configureAxis(this.xAxisConfig, config)
     return this
   }
 
   // Configure Y axis
   yAxis(config: AxisConfig): this {
-    this.yAxisConfig = {
-      name: config.label,
-      min: config.min,
-      max: config.max,
-      type: config.log ? 'log' : 'value',
-      ...this.yAxisConfig
-    }
+    this.configureAxis(this.yAxisConfig, config)
     return this
+  }
+
+  // Axis calls are partial updates: omitted fields keep their previous values.
+  private configureAxis(axis: any, config: AxisConfig): void {
+    if (config.label !== undefined) axis.name = config.label
+    if (config.min !== undefined) axis.min = config.min
+    if (config.max !== undefined) axis.max = config.max
+    if (config.log !== undefined) axis.type = config.log ? 'log' : 'value'
+    if (config.grid !== undefined) axis.splitLine = { show: config.grid }
   }
 
   // Enable grid
@@ -453,6 +450,9 @@ export class Figure {
       xAxis: {
         type: this.xAxisConfig.type || 'value',
         name: this.xAxisConfig.name,
+        min: this.xAxisConfig.min,
+        max: this.xAxisConfig.max,
+        splitLine: this.xAxisConfig.splitLine,
         data: this.xAxisConfig.data,
         axisLabel: {
           fontSize: 11
@@ -461,6 +461,9 @@ export class Figure {
       yAxis: {
         type: this.yAxisConfig.type || 'value',
         name: this.yAxisConfig.name,
+        min: this.yAxisConfig.min,
+        max: this.yAxisConfig.max,
+        splitLine: this.yAxisConfig.splitLine,
         axisLabel: {
           fontSize: 11
         }

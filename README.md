@@ -90,6 +90,21 @@ fig.scatter(Array.from({ length: 50 }, (_, i) => i), dataA)
    .render()
 ```
 
+### 浏览器坐标轴配置
+
+`xAxis()` 和 `yAxis()` 支持多次局部更新：只覆盖本次提供的字段，省略的字段保持不变。
+`min` / `max` 设置坐标范围，`log: true` 使用对数轴，`log: false` 恢复数值轴。
+只修改标签、范围或网格时，不会将柱状图、热力图等的分类轴改成数值轴。
+`grid` 控制该轴的网格线；`fig.grid()` 仍控制绘图区的边框/背景显示。
+
+```typescript
+fig.xAxis({ label: 'Time', min: 0, max: 100 })
+   .xAxis({ max: 200 }) // 保留标签和 min，只更新 max
+   .yAxis({ log: true, grid: false })
+   .yAxis({ label: 'Values' }) // 保留对数轴和网格设置
+   .update()
+```
+
 ### 服务端 SVG 渲染
 ```typescript
 // Node.js 环境，不需要浏览器
