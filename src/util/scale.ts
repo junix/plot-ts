@@ -88,7 +88,8 @@ export function fmt(v: number | null, kind: NumberFormat = 'plain', precision?: 
   if (v === null || !Number.isFinite(v)) return '';
   const round = (n: number, p: number) => {
     const s = n.toFixed(p);
-    return precision === undefined ? s.replace(/\.?0+$/, '') : s;
+    // Trim fraction zeros only; integer and exponent digits are significant.
+    return precision === undefined ? s.replace(/(\.\d*?[1-9])0+$|\.0+$/, '$1') : s;
   };
   switch (kind) {
     case 'percent':
@@ -147,3 +148,4 @@ export function estimateTextWidth(s: string, fontSize: number, bold = false): nu
 export function widestText(items: string[], fontSize: number, bold = false): number {
   return items.reduce((m, s) => Math.max(m, estimateTextWidth(s, fontSize, bold)), 0);
 }
+
