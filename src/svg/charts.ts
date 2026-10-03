@@ -509,6 +509,8 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
   const labels: Html[] = [];
 
   c.items.forEach((item, i) => {
+    if (item.value === 0) return;
+
     const ratio = item.value / total;
     const angle = ratio * 2 * Math.PI;
     const endAngle = startAngle + angle;
@@ -525,7 +527,10 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
 
     const largeArc = angle > Math.PI ? 1 : 0;
 
-    const path = `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 ${largeArc},1 ${n(x2)},${n(y2)} L${n(x3)},${n(y3)} A${n(holeR)},${n(holeR)} 0 ${largeArc},0 ${n(x4)},${n(y4)} Z`;
+    // Full circles need two arcs per boundary; opposite winding leaves the hole transparent.
+    const path = ratio === 1
+      ? `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 0,1 ${n(2 * cx - x1)},${n(2 * cy - y1)} A${n(r)},${n(r)} 0 0,1 ${n(x1)},${n(y1)} Z M${n(x4)},${n(y4)} A${n(holeR)},${n(holeR)} 0 0,0 ${n(2 * cx - x4)},${n(2 * cy - y4)} A${n(holeR)},${n(holeR)} 0 0,0 ${n(x4)},${n(y4)} Z`
+      : `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 ${largeArc},1 ${n(x2)},${n(y2)} L${n(x3)},${n(y3)} A${n(holeR)},${n(holeR)} 0 ${largeArc},0 ${n(x4)},${n(y4)} Z`;
 
     const { color } = seriesTone(i);
     slices.push(h('path', {
