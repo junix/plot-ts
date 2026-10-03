@@ -144,6 +144,7 @@ export class Figure {
     const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
 
     this.series.push({
+      id: `plot-ts-series-${this.series.length}`,
       name: config.name || `Series ${this.series.length + 1}`,
       type: 'line',
       data,
@@ -176,6 +177,7 @@ export class Figure {
     }
 
     this.series.push({
+      id: `plot-ts-series-${this.series.length}`,
       name: config.name || `Series ${this.series.length + 1}`,
       type: 'scatter',
       data,
@@ -201,6 +203,7 @@ export class Figure {
     const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
 
     this.series.push({
+      id: `plot-ts-series-${this.series.length}`,
       name: config.name || `Series ${this.series.length + 1}`,
       type: 'bar',
       data: values,
@@ -240,6 +243,7 @@ export class Figure {
     // Colormap configuration
 
     this.series.push({
+      id: `plot-ts-series-${this.series.length}`,
       type: 'heatmap',
       data: heatmapData,
       label: config.showValues ? { show: true, fontSize: 10 } : undefined,
@@ -278,6 +282,7 @@ export class Figure {
     }
 
     this.series.push({
+      id: `plot-ts-series-${this.series.length}`,
       type: 'custom',
       renderItem: (params: any, api: any) => {
         // Simple violin rendering using boxplot-like shape
@@ -330,6 +335,7 @@ export class Figure {
     const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
 
     this.series.push({
+      id: `plot-ts-series-${this.series.length}`,
       name: config.name || `Series ${this.series.length + 1}`,
       type: 'line',
       data,
@@ -385,9 +391,10 @@ export class Figure {
         series.data.shift()
       }
 
-      // Update only the data without full redraw
+      // Match by stable ID: an anonymous one-item patch would target series 0.
       this.chart.setOption({
         series: [{
+          id: series.id,
           data: series.data
         }]
       })
