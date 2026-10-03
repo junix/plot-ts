@@ -3,7 +3,7 @@ import test from 'node:test';
 import { figure } from '../src/svg/index.js';
 
 function chart(title?: string) {
-  return figure({ title }).bar({
+  return figure(title === undefined ? {} : { title }).bar({
     categories: ['A', 'B'],
     series: [{ values: [10, 20] }],
   });
