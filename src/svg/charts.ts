@@ -9,6 +9,7 @@
  */
 
 import type { Html } from '../util/html.js';
+import { COLORS } from '../style/palette.js';
 import { h, join, text, n } from '../util/html.js';
 import { fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
 import {
@@ -356,7 +357,19 @@ const VIRIDIS = [
   '#26838e', '#1f9d8a', '#6cce5a', '#b6de2b', '#fde725'
 ];
 
+// Reuse plot-ts's existing discrete palettes; preserve the original SVG viridis.
+function heatmapPalette(colormap: HeatmapChart['colormap']): readonly string[] {
+  switch (colormap) {
+    case undefined:
+    case 'viridis': return VIRIDIS;
+    case 'plasma': return COLORS.plasma;
+    case 'blues': return COLORS.blues;
+    default: throw new RangeError('Unsupported heatmap colormap. Use viridis, plasma, or blues.');
+  }
+}
+
 export function renderHeatmap(c: HeatmapChart, width: number, height: number): Html {
+  const palette = heatmapPalette(c.colormap);
   const rows = c.data.length;
   const cols = c.data[0]?.length || 0;
   if (rows === 0 || cols === 0) return '';
@@ -387,14 +400,14 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
       const v = c.data[r]![col]!;
       // A constant field has no relative low/high values; use the palette midpoint.
       const fraction = min === max ? 0.5 : (v - min) / (max - min);
-      const colorIdx = Math.round(fraction * (VIRIDIS.length - 1));
+      const colorIdx = Math.round(fraction * (palette.length - 1));
 
       cells.push(h('rect', {
         x: n(p.x0 + col * cellW),
         y: n(p.y0 + r * cellH),
         width: n(cellW),
         height: n(cellH),
-        fill: VIRIDIS[colorIdx],
+        fill: palette[colorIdx],
         stroke: '#fff',
         'stroke-width': 1,
       }));

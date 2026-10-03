@@ -172,6 +172,18 @@ retains the existing 24px layout without text. Y-label layout is unchanged.
 
 ---
 
+### SVG heatmap colormaps
+
+The SVG heatmap honors `colormap: 'viridis' | 'plasma' | 'blues'`. Omitted or
+`'viridis'` keeps the original SVG colors exactly. The other choices reuse the
+existing discrete `COLORS.plasma` and `COLORS.blues` arrays in `src/style/palette.ts`;
+they are not continuous interpolated color scales. Normalized values select the
+nearest palette index; a constant field selects the middle index (the upper of
+two middle entries for an even-length palette). Unsupported runtime names throw
+`RangeError`, including when the matrix is empty.
+
+---
+
 ## 🎯 API 设计原则
 
 ### Matplotlib 风格
