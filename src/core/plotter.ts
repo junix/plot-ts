@@ -65,6 +65,11 @@ export class Figure {
   private yAxisConfig: any = {}
   private titleText: string = ''
   private gridConfig: any = {}
+  private disposed = false
+  private streamStops = new Set<() => void>()
+  private handleResize = () => {
+    if (!this.disposed) this.chart.resize()
+  }
 
   constructor(container: HTMLElement, config: FigureConfig = {}) {
     this.dom = container
@@ -93,9 +98,7 @@ export class Figure {
     this.titleText = config.title || ''
 
     // Handle resize
-    window.addEventListener('resize', () => {
-      this.chart.resize()
-    })
+    window.addEventListener('resize', this.handleResize)
   }
 
   // Set title
@@ -401,13 +404,25 @@ export class Figure {
     maxPoints: number = 50,
     seriesIndex: number = 0
   ): () => void {
+    // A disposed figure cannot acquire new background work.
+    if (this.disposed) return () => {}
+
+    let active = true
     const timer = setInterval(() => {
+      if (!active || this.disposed) return
       const { x, y } = generator()
-      this.appendPoint(x, y, seriesIndex, maxPoints)
+      // The generator may stop this stream or dispose the figure itself.
+      if (active && !this.disposed) this.appendPoint(x, y, seriesIndex, maxPoints)
     }, interval)
 
-    // Return stop function
-    return () => clearInterval(timer)
+    const stop = () => {
+      if (!active) return
+      active = false
+      clearInterval(timer)
+      this.streamStops.delete(stop)
+    }
+    this.streamStops.add(stop)
+    return stop
   }
 
   // Render the chart
@@ -492,6 +507,10 @@ export class Figure {
 
   // Dispose
   dispose(): void {
+    if (this.disposed) return
+    this.disposed = true
+    window.removeEventListener('resize', this.handleResize)
+    for (const stop of this.streamStops) stop()
     this.chart.dispose()
   }
 
