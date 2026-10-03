@@ -595,6 +595,12 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 40;
   const axisCount = c.axes.length;
+  // 所有系列和可见轴共享默认上界，保留单系列形状并使系列之间可比较。
+  const inferred = niceCeil(maxOf(c.series.flatMap(s => s.values.slice(0, axisCount))));
+  const sharedMax = Number.isFinite(inferred) && inferred > 0 ? inferred : 1;
+  const maxima = c.axes.map(axis =>
+    axis.max !== undefined && Number.isFinite(axis.max) && axis.max > 0 ? axis.max : sharedMax,
+  );
 
   const polygons: Html[] = [];
   const circles: Html[] = [];
@@ -642,9 +648,8 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
   // 数据多边形
   c.series.forEach((s, si) => {
     const points: string[] = [];
-    c.axes.forEach((axis, ai) => {
-      const max = axis.max ?? niceCeil(Math.max(...s.values));
-      const ratio = Math.min(1, (s.values[ai] ?? 0) / max);
+    c.axes.forEach((_, ai) => {
+      const ratio = Math.min(1, (s.values[ai] ?? 0) / maxima[ai]!);
       const angle = (ai / axisCount) * 2 * Math.PI - Math.PI / 2;
       const px = cx + r * ratio * Math.cos(angle);
       const py = cy + r * ratio * Math.sin(angle);
