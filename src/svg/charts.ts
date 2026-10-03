@@ -15,6 +15,7 @@ import {
   plot,
   svg,
   yOf,
+  xOf,
   seriesTone,
   gridLines,
   categoryLabels,
@@ -179,62 +180,83 @@ export function renderLine(c: LineChart, width: number, height: number): Html {
     left: showAxis ? 30 : 2,
   });
 
-  // 计算全局值域
-  const allValues = c.series.flatMap(s => s.y.filter(v => v !== null) as number[]);
-  const dataMin = Math.min(0, Math.min(...allValues));
-  const dataMax = c.max ?? niceCeil(Math.max(...allValues));
-  const min = niceCeilForAxis(dataMin) * (dataMin < 0 ? -1 : 0);
-  const max = Math.max(dataMax, 1);
+  // Scan finite, paired data without argument spreads, which fail on large arrays.
+  let dataMin = 0;
+  let dataMax = 0;
+  for (const s of c.series) {
+    for (let i = 0; i < Math.min(c.x.length, s.y.length); i++) {
+      const y = s.y[i];
+      if (y === null || y === undefined || !Number.isFinite(y) || !Number.isFinite(c.x[i])) continue;
+      dataMin = Math.min(dataMin, y);
+      dataMax = Math.max(dataMax, y);
+    }
+  }
+  const min = -niceCeilForAxis(-dataMin);
+  const max = Math.max(c.max !== undefined && Number.isFinite(c.max) ? c.max : niceCeil(dataMax), 1);
 
-  const xMin = Math.min(...c.x);
-  const xMax = Math.max(...c.x);
+  let xMin = Infinity;
+  let xMax = -Infinity;
+  for (const x of c.x) {
+    if (!Number.isFinite(x)) continue;
+    xMin = Math.min(xMin, x);
+    xMax = Math.max(xMax, x);
+  }
+  if (xMin === Infinity) xMin = xMax = 0;
 
   const paths: Html[] = [];
   const areas: Html[] = [];
 
   c.series.forEach((s, si) => {
     const { color } = seriesTone(si);
-    const points: string[] = [];
+    const segments: Array<Array<[number, number]>> = [];
+    let segment: Array<[number, number]> = [];
 
     for (let i = 0; i < c.x.length; i++) {
+      const x = c.x[i];
       const y = s.y[i];
-      if (y === null || y === undefined) continue;
-      const px = p.x0 + ((c.x[i]! - xMin) / (xMax - xMin)) * p.w;
-      const py = yOf(p, y, min, max);
-      points.push(`${n(px)},${n(py)}`);
+      if (x === undefined || y === null || y === undefined || !Number.isFinite(x) || !Number.isFinite(y)) {
+        if (segment.length) segments.push(segment);
+        segment = [];
+        continue;
+      }
+      segment.push([xOf(p, x, xMin, xMax), yOf(p, y, min, max)]);
     }
+    if (segment.length) segments.push(segment);
 
-    if (points.length === 0) return;
+    for (const segment of segments) {
+      const points = segment.map(([x, y]) => `${n(x)},${n(y)}`);
 
-    // 面积填充
-    if (s.area) {
-      const zeroY = yOf(p, Math.max(min, 0), min, max);
-      const firstPx = p.x0 + ((c.x[0]! - xMin) / (xMax - xMin)) * p.w;
-      const lastPx = p.x0 + ((c.x[c.x.length - 1]! - xMin) / (xMax - xMin)) * p.w;
-      const areaD = `M${firstPx},${n(zeroY)} L${points.join(' L')} L${lastPx},${n(zeroY)} Z`;
-      areas.push(h('path', {
-        d: areaD,
-        fill: color,
-        opacity: 0.15,
+      // Close each area at its own endpoints, without filling missing samples.
+      if (s.area) {
+        const zeroY = yOf(p, Math.max(min, 0), min, max);
+        const firstPx = segment[0]![0];
+        const lastPx = segment[segment.length - 1]![0];
+        const areaD = `M${n(firstPx)},${n(zeroY)} L${points.join(' L')} L${n(lastPx)},${n(zeroY)} Z`;
+        areas.push(h('path', {
+          d: areaD,
+          fill: color,
+          opacity: 0.15,
+        }));
+      }
+
+      // A zero-length line with round caps makes isolated samples visible.
+      const linePoints = points.length === 1 ? [points[0], points[0]] : points;
+      paths.push(h('path', {
+        d: `M${linePoints.join(' L')}`,
+        fill: 'none',
+        stroke: color,
+        'stroke-width': 2,
+        'stroke-linejoin': 'round',
+        'stroke-linecap': 'round',
       }));
     }
-
-    // 折线
-    paths.push(h('path', {
-      d: `M${points.join(' L')}`,
-      fill: 'none',
-      stroke: color,
-      'stroke-width': 2,
-      'stroke-linejoin': 'round',
-      'stroke-linecap': 'round',
-    }));
   });
 
   return svg(width, height, join(
     showAxis ? gridLines(p, min, max) : '',
     baseline(p, min, max),
-    ...areas,
-    ...paths,
+    areas.join(''),
+    paths.join(''),
   ));
 }
 
@@ -851,3 +873,4 @@ function niceCeilSeries(v: number): number {
   if (v >= 0) return 0;
   return -niceCeil(-v);
 }
+
