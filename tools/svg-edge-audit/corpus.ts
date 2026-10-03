@@ -1,0 +1,88 @@
+/** Original bounded 118-case corpus, unchanged case definitions. */
+import {figure, type ColumnChart, type LineChart, type ScatterChart, type HeatmapChart, type WaterfallChart, type DonutChart, type RadarChart, type GaugeChart, type SlopeChart, type PyramidChart} from '../../src/svg/index.js';
+
+export type CaseRunner = <C>(family: string, name: string, config: C, render: (config: C) => string, note?: string) => void;
+
+export function replayCases(run: CaseRunner): void {
+const bar=(name:string,c:Omit<ColumnChart,'type'>,note='')=>run('bar',name,c,x=>figure().bar(x).render(),note);
+const line=(name:string,c:Omit<LineChart,'type'>,note='')=>run('line',name,c,x=>figure().line(x).render(),note);
+const scatter=(name:string,c:Omit<ScatterChart,'type'>,note='')=>run('scatter',name,c,x=>figure().scatter(x).render(),note);
+const heatmap=(name:string,c:Omit<HeatmapChart,'type'>,note='')=>run('heatmap',name,c,x=>figure().heatmap(x).render(),note);
+const waterfall=(name:string,c:Omit<WaterfallChart,'type'>,note='')=>run('waterfall',name,c,x=>figure().waterfall(x).render(),note);
+const donut=(name:string,c:Omit<DonutChart,'type'>,note='')=>run('donut',name,c,x=>figure().donut(x).render(),note);
+const radar=(name:string,c:Omit<RadarChart,'type'>,note='')=>run('radar',name,c,x=>figure().radar(x).render(),note);
+const gauge=(name:string,c:Omit<GaugeChart,'type'>,note='')=>run('gauge',name,c,x=>figure().gauge(x).render(),note);
+const slope=(name:string,c:Omit<SlopeChart,'type'>,note='')=>run('slope',name,c,x=>figure().slope(x).render(),note);
+const pyramid=(name:string,c:Omit<PyramidChart,'type'>,note='')=>run('pyramid',name,c,x=>figure().pyramid(x).render(),note);
+const names=['A','B','C'];
+for(const [name,values] of [ ['valid',[1,2,3]],['constant',[2,2,2]],['zero',[0,0,0]],['negative',[-1,-2,-3]],['mixed',[-1,2,-3]],['nonfinite',[NaN,Infinity,-Infinity]] ] as Array<[string,number[]]>) {
+ bar(name,{categories:names,series:[{values}],yAxis:true});
+ line(name,{x:[0,1,2],series:[{y:values,area:true}],yAxis:true});
+ scatter(name,{points:values.map((y,x)=>({x,y})),yAxis:true});
+ heatmap(name,{data:[values]});
+ waterfall(name,{categories:names,values});
+ donut(name,{items:values.map((value,i)=>({name:names[i]!,value})),labels:false},name==='negative'||name==='mixed'?'Negative parts have no clear donut semantics; should reject rather than draw misleading sectors':'');
+ radar(name,{axes:names.map(name=>({name})),series:[{values}]});
+ gauge(name,{value:values[0]!});
+ slope(name,{items:values.map((v,i)=>({name:names[i]!,left:v,right:values[(i+1)%3]!}))});
+ pyramid(name,{layers:values.map((value,i)=>({name:names[i]!,value}))},name==='negative'||name==='mixed'?'Negative layer width has no documented semantics; should reject':'');
+}
+bar('empty',{categories:[],series:[]});
+bar('empty-series',{categories:names,series:[],yAxis:true});
+bar('allnull',{categories:names,series:[{values:[null,null,null]}],yAxis:true});
+bar('short-values',{categories:names,series:[{values:[1]}],yAxis:true});
+bar('long-values',{categories:['A'],series:[{values:[1,-100]}],yAxis:true});
+bar('stack-positive',{categories:['A'],series:[{values:[10]},{values:[20]}],stacked:true,yAxis:true});
+bar('stack-negative',{categories:['A'],series:[{values:[-10]},{values:[-20]}],stacked:true,yAxis:true});
+bar('stack-mixed',{categories:['A'],series:[{values:[10]},{values:[-5]}],stacked:true,yAxis:true});
+line('empty',{x:[],series:[],yAxis:true});
+line('allnull',{x:[0,1,2],series:[{y:[null,null,null],area:true}],yAxis:true});
+line('singleton',{x:[1],series:[{y:[2],area:true}],yAxis:true});
+line('constant-x',{x:[1,1,1],series:[{y:[1,2,3]}],yAxis:true});
+line('short-y',{x:[0,1,2],series:[{y:[1],area:true}],yAxis:true});
+line('long-y',{x:[0],series:[{y:[1,2,3],area:true}],yAxis:true});
+line('nonfinite-x',{x:[NaN,Infinity,-Infinity],series:[{y:[1,2,3]}],yAxis:true});
+scatter('empty',{points:[],yAxis:true});
+scatter('singleton',{points:[{x:1,y:2}],yAxis:true});
+scatter('constant-x',{points:[{x:1,y:1},{x:1,y:2}],yAxis:true});
+scatter('nonfinite-x',{points:[{x:NaN,y:1},{x:2,y:2}],yAxis:true});
+scatter('mixed-nonfinite',{points:[{x:0,y:1},{x:1,y:NaN},{x:2,y:3}],yAxis:true});
+scatter('negative-size',{points:[{x:0,y:1,size:-1},{x:1,y:2}]},'Invalid marker radius should reject or omit, not produce negative SVG r');
+scatter('nonfinite-size',{points:[{x:0,y:1,size:Infinity},{x:1,y:2}]});
+heatmap('empty',{data:[]});
+heatmap('empty-rows',{data:[[]]});
+heatmap('singleton',{data:[[1]]});
+heatmap('ragged-short',{data:[[1,2],[3]]},'Ragged rectangular data is unsupported; should reject or deliberately omit missing cells');
+heatmap('ragged-long',{data:[[1],[2,100]]},'Extra cell silently discarded while influencing domain');
+heatmap('empty-ylabels',{data:[[1,2]],yLabels:[]});
+heatmap('labels',{data:[[1,2],[3,4]],xLabels:['X1','X2'],yLabels:['Y1','Y2']});
+heatmap('blues',{data:[[1,2]],colormap:'blues'});
+heatmap('plasma',{data:[[1,2]],colormap:'plasma'});
+heatmap('mixed-nonfinite',{data:[[1,NaN],[2,3]]});
+waterfall('empty',{categories:[],values:[]});
+waterfall('short-values',{categories:names,values:[1]});
+waterfall('long-values',{categories:['A'],values:[1,2,3]});
+waterfall('prefix-positive',{categories:names,values:[100,100,-100]});
+waterfall('prefix-negative',{categories:names,values:[-100,-100,100]});
+waterfall('mixed-nonfinite',{categories:names,values:[1,NaN,3]});
+donut('empty',{items:[]});
+donut('singleton',{items:[{name:'A',value:1}],labels:false});
+donut('zero-plus-one',{items:[{name:'zero',value:0},{name:'A',value:1}],labels:false});
+donut('negative-hole',{items:[{name:'A',value:1},{name:'B',value:1}],holeRatio:-1});
+radar('empty',{axes:[],series:[]});
+radar('empty-values',{axes:names.map(name=>({name})),series:[{values:[]}]});
+radar('short-values',{axes:names.map(name=>({name})),series:[{values:[1]}]});
+radar('long-values',{axes:names.map(name=>({name})),series:[{values:[1,2,3,100]}]});
+radar('compare-series',{axes:names.map(name=>({name})),series:[{name:'small',values:[1,1,1]},{name:'large',values:[100,100,100]}]});
+radar('zero-max',{axes:names.map(name=>({name,max:0})),series:[{values:[0,1,2]}]});
+gauge('zero-max',{value:0,max:0});
+gauge('negative-max',{value:10,max:-10});
+gauge('nonfinite-max',{value:10,max:Infinity});
+gauge('custom-full-band',{value:0.5,max:1,bands:[{from:0,to:1,color:'#f00'}]});
+slope('empty',{items:[]});
+slope('singleton',{items:[{name:'A',left:1,right:1}]});
+slope('mixed-nonfinite',{items:[{name:'A',left:1,right:NaN},{name:'B',left:2,right:3}]});
+pyramid('empty',{layers:[]});
+pyramid('singleton',{layers:[{name:'A',value:1}]});
+pyramid('mixed-nonfinite',{layers:[{name:'A',value:1},{name:'B',value:NaN}]});
+}
