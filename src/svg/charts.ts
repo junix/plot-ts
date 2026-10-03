@@ -283,6 +283,7 @@ export function renderLine(c: LineChart, width: number, height: number): Html {
 
 export interface ScatterChart {
   type: 'scatter';
+  /** Nonfinite coordinate pairs are omitted; rendered pairs require a finite non-negative size. */
   points: Array<{ x: number; y: number; size?: number }>;
   unit?: string;
   yAxis?: boolean;
@@ -305,6 +306,10 @@ export function renderScatter(c: ScatterChart, width: number, height: number): H
   let dataMax = -Infinity;
   for (const pt of c.points) {
     if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+    const size = pt.size ?? 4;
+    if (!Number.isFinite(size) || size < 0) {
+      throw new RangeError('Scatter size must be finite and non-negative for finite coordinate pairs');
+    }
     xMin = Math.min(xMin, pt.x);
     xMax = Math.max(xMax, pt.x);
     yMin = Math.min(yMin, pt.y);
@@ -345,6 +350,7 @@ export function renderScatter(c: ScatterChart, width: number, height: number): H
 
 export interface HeatmapChart {
   type: 'heatmap';
+  /** Rectangular rows of finite values; empty rectangular data is allowed. */
   data: number[][];
   xLabels?: string[];
   yLabels?: string[];
@@ -372,6 +378,16 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
   const palette = heatmapPalette(c.colormap);
   const rows = c.data.length;
   const cols = c.data[0]?.length || 0;
+  for (const row of c.data) {
+    if (row.length !== cols) {
+      throw new RangeError('Heatmap data must be rectangular');
+    }
+    for (const value of row) {
+      if (!Number.isFinite(value)) {
+        throw new RangeError('Heatmap values must be finite');
+      }
+    }
+  }
   if (rows === 0 || cols === 0) return '';
 
   const labelW = c.yLabels?.length ? Math.max(...c.yLabels.map(l => l.length)) * 7 + 10 : 10;
@@ -446,12 +462,22 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
 export interface WaterfallChart {
   type: 'waterfall';
   categories: string[];
+  /** Finite signed steps, with exactly one value per category. */
   values: number[];
   labels?: boolean;
   format?: 'plain' | 'percent' | 'compact';
 }
 
 export function renderWaterfall(c: WaterfallChart, width: number, height: number): Html {
+  if (c.categories.length !== c.values.length) {
+    throw new RangeError('Waterfall categories and values must have equal lengths');
+  }
+  for (const value of c.values) {
+    if (!Number.isFinite(value)) {
+      throw new RangeError('Waterfall values must be finite');
+    }
+  }
+
   const p = plot(width, height, { top: 30, right: 20, bottom: 30, left: 40 });
 
   // 计算累计值
@@ -530,12 +556,19 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
 
 export interface DonutChart {
   type: 'donut';
+  /** Values must be finite; existing signed-value behavior is retained. */
   items: Array<{ name: string; value: number }>;
   holeRatio?: number;
   labels?: boolean;
 }
 
 export function renderDonut(c: DonutChart, width: number, height: number): Html {
+  for (const item of c.items) {
+    if (!Number.isFinite(item.value)) {
+      throw new RangeError('Donut values must be finite');
+    }
+  }
+
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 20;
@@ -609,11 +642,19 @@ export interface RadarChart {
   axes: Array<{ name: string; max?: number }>;
   series: Array<{
     name?: string;
+    /** Supplied values must be finite; missing entries remain zero. */
     values: number[];
   }>;
 }
 
 export function renderRadar(c: RadarChart, width: number, height: number): Html {
+  for (const series of c.series) {
+    // Sparse or trailing missing entries retain the existing zero fallback.
+    if (series.values.some(value => !Number.isFinite(value))) {
+      throw new RangeError('Radar values must be finite');
+    }
+  }
+
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 40;
@@ -785,6 +826,7 @@ export function renderGauge(c: GaugeChart, width: number, height: number): Html 
 
 export interface SlopeChart {
   type: 'slope';
+  /** Both endpoints must be finite; signed values are allowed. */
   items: Array<{ name: string; left: number; right: number }>;
   leftTitle?: string;
   rightTitle?: string;
@@ -792,6 +834,12 @@ export interface SlopeChart {
 }
 
 export function renderSlope(c: SlopeChart, width: number, height: number): Html {
+  for (const item of c.items) {
+    if (!Number.isFinite(item.left) || !Number.isFinite(item.right)) {
+      throw new RangeError('Slope endpoints must be finite');
+    }
+  }
+
   const p = plot(width, height, { top: 30, right: 80, bottom: 30, left: 80 });
 
   const allValues = c.items.flatMap(i => [i.left, i.right]);
