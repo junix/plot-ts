@@ -66,6 +66,41 @@ function resolveHeatmapColormap(colormap: HeatmapConfig['colormap']): HeatmapCol
   }
 }
 
+// Nonempty labels are partial annotations, as in the SVG heatmap. Keep one
+// category per matrix column/row; missing annotations are blank and extras ignored.
+function heatmapLabels(labels: string[], count: number): string[] {
+  if (!Array.isArray(labels)) {
+    throw new RangeError('Heatmap labels must be strings')
+  }
+  // Iteration checks holes as well as explicitly supplied entries.
+  for (const label of labels) {
+    if (typeof label !== 'string') throw new RangeError('Heatmap labels must be strings')
+  }
+  return Array.from({ length: count }, (_, i) => labels.length ? (labels[i] ?? '') : String(i))
+}
+
+// A single visualMap is shared by all heatmaps, so its domain must include all
+// their cells. Iteration avoids the argument-count limit of Math.min(...values).
+function heatmapDomain(series: { data: [number, number, number][] }[]): [number, number] {
+  let min = Infinity
+  let max = -Infinity
+  for (const heatmap of series) {
+    for (const [, , value] of heatmap.data) {
+      if (value < min) min = value
+      if (value > max) max = value
+    }
+  }
+  if (min === Infinity) return [0, 1]
+  if (min === max) {
+    const padding = Math.max(1, Math.abs(min) * 0.01)
+    // At finite extremes use a one-sided interval instead of an infinite bound.
+    const lower = min - padding
+    const upper = max + padding
+    return [Number.isFinite(lower) ? lower : min, Number.isFinite(upper) ? upper : max]
+  }
+  return [min, max]
+}
+
 function validateMaxPoints(maxPoints: number): void {
   if (!Number.isSafeInteger(maxPoints) || maxPoints <= 0) {
     throw new RangeError('maxPoints must be a positive safe integer')
@@ -242,7 +277,7 @@ export class Figure {
     return this
   }
 
-  // Heatmap
+  // Heatmap: finite rectangular rows; [] and zero-column matrices are allowed.
   heatmap(
     data: number[][],
     xLabels: string[] = [],
@@ -255,13 +290,23 @@ export class Figure {
       throw new RangeError('Heatmaps in one Figure must use the same colormap.')
     }
 
-    // Convert matrix to ECharts heatmap format
-    const heatmapData: any[] = []
+    // Validate and snapshot all inputs before changing the figure's series/axes.
+    if (!Array.isArray(data)) throw new RangeError('Heatmap data must be rectangular')
+    const columns = data[0]?.length ?? 0
+    const heatmapData: [number, number, number][] = []
     for (let i = 0; i < data.length; i++) {
-      for (let j = 0; j < data[i]!.length; j++) {
-        heatmapData.push([j, i, data[i]![j]])
+      const row = data[i]
+      if (!Array.isArray(row) || row.length !== columns) {
+        throw new RangeError('Heatmap data must be rectangular')
+      }
+      for (let j = 0; j < columns; j++) {
+        const value = row[j]!
+        if (!Number.isFinite(value)) throw new RangeError('Heatmap values must be finite')
+        heatmapData.push([j, i, value])
       }
     }
+    const columnLabels = heatmapLabels(xLabels, columns)
+    const rowLabels = heatmapLabels(yLabels, data.length)
 
     this.series.push({
       id: `plot-ts-series-${this.series.length}`,
@@ -274,9 +319,9 @@ export class Figure {
     this.heatmapColormap = colormap
 
     this.xAxisConfig.type = 'category'
-    this.xAxisConfig.data = xLabels.length ? xLabels : Array.from({ length: data[0]?.length || 0 }, (_, i) => String(i))
+    this.xAxisConfig.data = columnLabels
     this.yAxisConfig.type = 'category'
-    this.yAxisConfig.data = yLabels.length ? yLabels : Array.from({ length: data.length }, (_, i) => String(i))
+    this.yAxisConfig.data = rowLabels
 
     return this
   }
@@ -514,13 +559,15 @@ export class Figure {
     }
 
     // Add visualMap for heatmap
-    if (this.series.some(s => s.type === 'heatmap')) {
+    const heatmaps = this.series.filter(s => s.type === 'heatmap')
+    if (heatmaps.length) {
+      const [min, max] = heatmapDomain(heatmaps)
       option.visualMap = {
         // Never apply a heatmap palette to a line, scatter, or other series.
         seriesIndex: this.series.flatMap((series, index) => series.type === 'heatmap' ? [index] : []),
         dimension: 2,
-        min: Math.min(...this.series.filter(s => s.type === 'heatmap')[0].data.map((d: [number, number, number]) => d[2])),
-        max: Math.max(...this.series.filter(s => s.type === 'heatmap')[0].data.map((d: [number, number, number]) => d[2])),
+        min,
+        max,
         calculable: true,
         orient: 'horizontal',
         left: 'center',
