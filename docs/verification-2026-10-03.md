@@ -160,3 +160,28 @@ import tests without DOM or ECharts.
 - **No blanket sign/configuration policy was added:** finite signed observations retain their existing behavior outside the specifically documented gauge/pyramid rules. Negative donut parts, negative radar samples, custom gauge-band normalization, and invalid explicit radar maxima were not redesigned. Radar's existing invalid-max fallback remains distinct from gauge's rejection policy
 - **Layout and extreme-value limits remain:** very long labels, bar labels at a plot boundary, the retained half-pixel minimum for zero/tiny bars, panels smaller than their chart margins, and extreme-magnitude numerical overflow remain outside the verified envelope
 - **Release/runtime gates remain open:** fix the installed `./svg` export with a real multi-entry build, declarations, and packed-package Node imports without DOM/ECharts. Run the declared npm/tsx/TypeScript 7/Vite workflow separately. Browser configuration, streaming selection, disposal, animation, and interaction still require browser-specific tests
+
+## Browser-contract checkpoint: d1c7f2d4dd7
+
+This separate later checkpoint is pinned to [d1c7f2d4dd7ee2c54255f6672f236f5d514c74fd](https://github.com/junix/plot-ts/commit/d1c7f2d4dd7ee2c54255f6672f236f5d514c74fd). It adds bounded tests of the production browser Figure at a mocked ECharts boundary. It is **not a browser-rendering or real-ECharts integration pass**.
+
+### Repairs covered
+
+- [Lifecycle, fe6f206](https://github.com/junix/plot-ts/commit/fe6f206eb30484ae923617c0a15526ea8254169a): disposal removes the resize listener, cancels owned streams, and is idempotent. Stale callbacks and generator-triggered disposal/stopping cannot append afterward; independent Figures and streams remain active
+- [Axis updates, 8b772107](https://github.com/junix/plot-ts/commit/8b77210732fe7f57bb57e74bbade899305cd565b): axis calls are partial updates. Omitted fields retain their values; supplied labels, bounds, log settings, and grid visibility reach the outgoing options, including zero, false, and empty labels
+- [Series selection, da2cbbc](https://github.com/junix/plot-ts/commit/da2cbbc744c9faf4cb64b9dc22eb7cdf9f185456): all six builders receive stable Figure-owned IDs. Incremental updates address the selected ID despite duplicate names or unnamed predecessors; IDs survive re-rendering. Raw-chart replacement and non-XY streaming remain outside the contract
+- [Heatmap row labels, c0f4f96](https://github.com/junix/plot-ts/commit/c0f4f96f3c373d2a8d2d1149f2f010535c540049): configured Y-axis category data reaches render/update payloads, preserving supplied row labels or independently generated row indices without transposing matrix coordinates
+- [Bounded history, d1c7f2d](https://github.com/junix/plot-ts/commit/d1c7f2d4dd7ee2c54255f6672f236f5d514c74fd): maxPoints defaults to 50 and must be a positive safe integer. A successful append retains the newest N points, including when initial history already exceeds the limit. Invalid bounds fail before existing-series mutation or live-stream timer allocation. Missing append targets and disposed streams retain their documented no-op behavior
+
+The detailed selection, retention, and failure-recovery contracts are in [Browser streaming](browser-streaming.md).
+
+### Independent final-source checks
+
+- Fresh GitHub tree reads verified all **55 materialized repository files** against the final commit's blob SHAs before and after execution, covering all source, tests, examples, and portable audit tools plus the selected configuration/documentation files
+- **442/442 tests passed in Node 24.19.0 and 442/442 in Bun 1.3.14**, across 24 test files: the earlier 351 SVG/helper tests plus 91 browser-contract tests. Node ran esbuild 0.27.7 CommonJS bundles with the existing TypeScript module resolvable; Bun ran TypeScript source directly
+- The shared harness evaluates the actual Figure and palette source with fake ECharts, window events, and timers. Streaming assertions inspect outgoing patches and a focused ID/position merge model; that model is not the ECharts implementation
+- Strict TypeScript 5.9.3 checking passed for all source/tests, TypeScript examples, and portable SVG audit tools with noUncheckedIndexedAccess, exactOptionalPropertyTypes, and verbatimModuleSyntax. A minimal ambient ECharts stub was used, so this does **not** validate real ECharts types. Vite configuration was excluded; the declared TypeScript 7 workflow remains unverified
+- All ten production files other than src/core/plotter.ts match the 351-test SVG checkpoint byte-for-byte, including the entire SVG dependency graph. Its recorded corpus, raster, and visual evidence remains applicable to that unchanged implementation; those checks were not repeated for this browser-contract checkpoint
+- The actual declared commands still fail in the offline snapshot: npm test exits 1 because tsx is absent; npm run lint and npm run build exit 127 because local tsc is absent. The build stops before Vite. No dependency installation/download, package/lockfile change, browser session, or CI action was used to obtain these results
+
+Real ECharts rendering, DOM/canvas integration, animation, interaction, the installed-package exports, the declared dependency/build workflow, and CI acceptance remain open gates. The earlier source-direct SVG evidence and these mocked browser-contract tests do not close them.
