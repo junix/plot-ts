@@ -838,13 +838,22 @@ export function renderSlope(c: SlopeChart, width: number, height: number): Html 
 
 export interface PyramidChart {
   type: 'pyramid';
+  /** Finite non-negative values; all-zero layers retain labels with zero width. */
   layers: Array<{ name: string; value: number }>;
 }
 
 export function renderPyramid(c: PyramidChart, width: number, height: number): Html {
+  if (c.layers.some(layer => !Number.isFinite(layer.value) || layer.value < 0)) {
+    throw new RangeError('Pyramid values must be finite and non-negative');
+  }
+
   const p = plot(width, height, { top: 10, right: 100, bottom: 10, left: 100 });
 
-  const max = niceCeil(Math.max(...c.layers.map(l => l.value)));
+  const observedMax = Math.max(0, ...c.layers.map(l => l.value));
+  const max = observedMax === 0 ? 1 : niceCeil(observedMax);
+  if (!Number.isFinite(max) || max <= 0) {
+    throw new RangeError('Pyramid maximum must be finite and positive');
+  }
   const layerH = p.h / c.layers.length;
   const layers: Html[] = [];
   const labels: Html[] = [];
