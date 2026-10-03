@@ -12,7 +12,7 @@
  */
 
 import type { Html } from '../util/html.js';
-import { h, join } from '../util/html.js';
+import { esc, h, join } from '../util/html.js';
 import { generateStyles, palette, type AccentName } from '../style/tokens.js';
 import {
   renderColumn,
@@ -204,7 +204,7 @@ export class SvgFigure {
         'font-size': 18,
         'font-weight': 700,
         fill: '#051C2C',
-      }, this.title)
+      }, esc(this.title))
       : '';
 
     return this.wrapSvg(join(titleElem, h('g', { transform: `translate(0, ${titleH})` }, chartSvg)));
@@ -216,7 +216,7 @@ export class SvgFigure {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${this.title || 'plot-ts Chart'}</title>
+  <title>${esc(this.title || 'plot-ts Chart')}</title>
   <style>
     body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f7; }
     .chart-container { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20px; }
@@ -269,3 +269,4 @@ export type {
   SlopeChart,
   PyramidChart,
 };
+
