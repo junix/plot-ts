@@ -281,18 +281,27 @@ export function renderScatter(c: ScatterChart, width: number, height: number): H
     left: showAxis ? 30 : 10,
   });
 
-  const allX = c.points.map(p => p.x);
-  const allY = c.points.map(p => p.y);
-  const xMin = Math.min(...allX);
-  const xMax = Math.max(...allX);
-  const yMin = Math.min(...allY);
-  const yMax = niceCeil(Math.max(...allY));
+  // Only finite coordinate pairs contribute to either domain.
+  let xMin = Infinity;
+  let xMax = -Infinity;
+  let yMin = Infinity;
+  let dataMax = -Infinity;
+  for (const pt of c.points) {
+    if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+    xMin = Math.min(xMin, pt.x);
+    xMax = Math.max(xMax, pt.x);
+    yMin = Math.min(yMin, pt.y);
+    dataMax = Math.max(dataMax, pt.y);
+  }
+  if (xMin === Infinity) xMin = xMax = yMin = dataMax = 0;
+  const yMax = niceCeil(dataMax);
 
   const { color } = seriesTone(0);
   const circles: Html[] = [];
 
   c.points.forEach((pt, i) => {
-    const px = p.x0 + ((pt.x - xMin) / (xMax - xMin)) * p.w;
+    if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return;
+    const px = xOf(p, pt.x, xMin, xMax);
     const py = yOf(p, pt.y, yMin, yMax);
     const size = pt.size ?? 4;
 
