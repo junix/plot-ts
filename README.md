@@ -146,6 +146,13 @@ node --import tsx examples/svg-grid-demo.ts out
 #      out/svg-gallery.svg、out/svg-gallery.html
 ```
 
+### SVG 仪表盘的数值范围
+
+`gauge({ value: 0 })` 使用 `0..1` 的自动范围，指针停在零端点，默认色带保持可见。
+显式 `max` 必须是有限正数；不会把 `max: 0` 当成省略。非有限 `value`、无效
+`max` 或无法构造有限正数范围时会在渲染时抛出 `RangeError`。负数 `value` 需要
+显式正数 `max`；显式范围外的有限值仍按原有行为将指针限制在两端，数值标签不变。
+
 ---
 
 ## 🎯 API 设计原则

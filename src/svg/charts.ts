@@ -675,7 +675,9 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
 
 export interface GaugeChart {
   type: 'gauge';
+  /** Finite value; values outside an explicit scale clamp to its endpoints. */
   value: number;
+  /** Finite positive maximum. If omitted, zero uses 1; negative values require an explicit max. */
   max?: number;
   title?: string;
   unit?: string;
@@ -683,10 +685,17 @@ export interface GaugeChart {
 }
 
 export function renderGauge(c: GaugeChart, width: number, height: number): Html {
+  if (!Number.isFinite(c.value)) {
+    throw new RangeError('Gauge value must be finite');
+  }
+  const max = c.max ?? (c.value === 0 ? 1 : niceCeil(c.value));
+  if (!Number.isFinite(max) || max <= 0) {
+    throw new RangeError('Gauge maximum must be finite and positive');
+  }
+
   const cx = width / 2;
   const cy = height * 0.7;
   const r = Math.min(width, height) * 0.4;
-  const max = c.max ?? niceCeil(c.value);
   const ratio = Math.min(1, Math.max(0, c.value / max));
 
   const startAngle = Math.PI * 0.8;
