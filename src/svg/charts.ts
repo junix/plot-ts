@@ -48,15 +48,28 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
   const showLabels = c.labels !== false;
   const showAxis = !!c.yAxis;
 
-  // 计算每根柱子的高度总和
+  // Signed stacks grow independently on each side of zero. Only paired,
+  // finite values participate in the domain, just as in the rendering loop.
+  let negativeStackMin = 0;
   const totals = stacked
-    ? c.categories.map((_, i) => sumSeries(c.series, i))
+    ? c.categories.map((_, i) => {
+        let positive = 0;
+        let negative = 0;
+        for (const s of c.series) {
+          const v = s.values[i];
+          if (v === null || v === undefined || !Number.isFinite(v)) continue;
+          if (v < 0) negative += v;
+          else positive += v;
+        }
+        negativeStackMin = Math.min(negativeStackMin, negative);
+        return positive;
+      })
     : c.categories.map((_, i) => maxOfSeries(c.series, i));
 
   // 上界：有轴用 axis 阶梯（保证刻度好看），无轴用细阶梯（不浪费画布）
   const nice = showAxis ? niceCeilForAxis : niceCeil;
   const rawMax = c.max ?? nice(maxOf(totals));
-  const min = Math.min(0, niceFloorSeries(c.series));
+  const min = Math.min(0, stacked ? niceCeilSeries(negativeStackMin) : niceFloorSeries(c.series));
   const max = rawMax <= min ? min + 1 : rawMax;
 
   // 定义绘图区留白
@@ -91,9 +104,10 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
   const labels: Html[] = [];
 
   c.categories.forEach((_, ci) => {
-    // 堆叠**自上而下**：series[0] 是最上面那一段。
-    // 数组从上往下读，图例次序与图形必须一致。
-    let upper = totals[ci] as number;
+    // Keep series order top-to-bottom on each side of zero. Positive stacks
+    // retain their existing geometry; negative stacks begin at the baseline.
+    let positiveUpper = totals[ci] as number;
+    let negativeUpper = 0;
 
     c.series.forEach((s, si) => {
       const v = s.values[ci];
@@ -106,10 +120,12 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
 
       if (stacked) {
         x = (centers[ci] as number) - barW / 2;
-        const lower = upper - v;
+        const upper = v < 0 ? negativeUpper : positiveUpper;
+        const lower = v < 0 ? upper + v : upper - v;
         yTop = yOf(finalPlot, Math.max(upper, lower), min, max);
         barH = Math.abs(yOf(finalPlot, lower, min, max) - yOf(finalPlot, upper, min, max));
-        upper = lower;
+        if (v < 0) negativeUpper = lower;
+        else positiveUpper = lower;
       } else {
         const groupW = barW * c.series.length;
         x = (centers[ci] as number) - groupW / 2 + si * barW;
