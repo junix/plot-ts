@@ -361,7 +361,7 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
   const cols = c.data[0]?.length || 0;
   if (rows === 0 || cols === 0) return '';
 
-  const labelW = c.yLabels ? Math.max(...c.yLabels.map(l => l.length)) * 7 + 10 : 10;
+  const labelW = c.yLabels?.length ? Math.max(...c.yLabels.map(l => l.length)) * 7 + 10 : 10;
   const labelH = c.xLabels ? 24 : 2;
 
   const p = plot(width, height, {
