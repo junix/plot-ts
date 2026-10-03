@@ -369,7 +369,9 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
   for (let r = 0; r < rows; r++) {
     for (let col = 0; col < cols; col++) {
       const v = c.data[r]![col]!;
-      const colorIdx = Math.round(((v - min) / (max - min)) * (VIRIDIS.length - 1));
+      // A constant field has no relative low/high values; use the palette midpoint.
+      const fraction = min === max ? 0.5 : (v - min) / (max - min);
+      const colorIdx = Math.round(fraction * (VIRIDIS.length - 1));
 
       cells.push(h('rect', {
         x: n(p.x0 + col * cellW),
