@@ -185,3 +185,81 @@ The detailed selection, retention, and failure-recovery contracts are in [Browse
 - The actual declared commands still fail in the offline snapshot: npm test exits 1 because tsx is absent; npm run lint and npm run build exit 127 because local tsc is absent. The build stops before Vite. No dependency installation/download, package/lockfile change, browser session, or CI action was used to obtain these results
 
 Real ECharts rendering, DOM/canvas integration, animation, interaction, the installed-package exports, the declared dependency/build workflow, and CI acceptance remain open gates. The earlier source-direct SVG evidence and these mocked browser-contract tests do not close them.
+
+
+## Declared-toolchain and packed-package checkpoint: 6cacd37227de
+
+Verified on **2026-10-04 UTC** against
+[6cacd37227dec7576dfd649d4a7d1973db83de74](https://github.com/junix/plot-ts/commit/6cacd37227dec7576dfd649d4a7d1973db83de74).
+This later checkpoint closes the declared npm/build and packed-entrypoint gaps for
+this commit. Earlier offline failures above remain historical records of their
+respective snapshots; they are not replaced or reclassified as passes.
+
+### Recovered environment and baseline failures
+
+- The complete original checkout at
+  [ba6045e90993](https://github.com/junix/plot-ts/commit/ba6045e909939c305586088d2c0bf87de6e59a99),
+  including package-lock.json, contained 65 Git-blob-verified files. Downloads
+  used the official npm registry and the lockfile's integrity checks
+- `npm ci --ignore-scripts --no-audit --no-fund` installed 412 packages.
+  All lifecycle scripts stayed disabled. The installed tool versions were
+  Node 24.19.0, npm 11.9.0, TypeScript 7.0.2, tsx 4.23.1, Vite 8.1.5,
+  esbuild 0.28.1, and ECharts 6.1.0
+- The exact original `npm test` ran 547 tests: **351 passed and 196 failed**.
+  The browser harness called `typescript.transpileModule` and
+  `typescript.ScriptTarget`, which the declared TypeScript 7 main export no
+  longer provides. This was a real compatibility failure, not a missing loader
+- Original `npm run lint` and `npm run build` exited 0, but Vite cleared the
+  declarations emitted immediately before it. The packed `./svg` export also
+  selected the browser root, lacked `SvgFigure`, and required ECharts even for
+  a clean SVG-only import. All four added package regression checks failed
+  against that original packed artifact
+
+### Bounded repairs and exact acceptance
+
+[7c05907c68ca](https://github.com/junix/plot-ts/commit/7c05907c68cae9e4cad673b4465551ec49152bc1)
+changes the test harness to the supported esbuild `transformSync` API with
+`loader: 'ts'`, `target: 'es2022'`, and `format: 'cjs'`. esbuild 0.28.1 was
+already locked transitively through tsx; it is now explicitly declared as a
+devDependency. The TypeScript 7 compiler and the independent `npm run lint`
+type-check gate remain unchanged. No older compiler fallback hides failures.
+
+[6cacd37227de](https://github.com/junix/plot-ts/commit/6cacd37227dec7576dfd649d4a7d1973db83de74)
+retains the browser ES/UMD/IIFE bundles, adds a separately built pure SVG ES
+entry, emits declarations last, and declares types-first export targets and
+package contents. It adds the discoverable `npm run test:package` gate.
+
+The final tested candidate matches **all 67 published Git blobs**. Fresh
+lockfile installs with scripts disabled also passed from the populated official
+registry cache, with no additional network access. Exact final results:
+
+| Command | Result |
+| --- | --- |
+| `npm test` | 547 passed, 0 failed, 0 skipped: 351 SVG/helper and 196 mocked browser-contract tests |
+| `npm run lint` | Exit 0 using the declared TypeScript 7.0.2 compiler and actual installed dependencies |
+| `npm run build` | Exit 0; browser ES/UMD/IIFE, independent SVG ES, and declaration files produced |
+| `npm run test:package` | Rebuild succeeded; all 4 actual packed-consumer tests passed, none skipped |
+
+The package gate uses `npm pack --ignore-scripts`, extracts the actual tarball
+with system `tar` into a fresh temporary consumer, and checks exported files and
+both declared entrypoints. SVG runtime rendering and strict NodeNext SVG type
+resolution pass before any dependency or DOM is available. The root-entry test
+then links only the already installed ECharts dependency and checks the browser
+API, SVG namespace, and their TypeScript declarations. Nothing is published and
+no dependency is downloaded by this gate.
+
+### Remaining boundaries
+
+- The two entrypoints are separately bundled: cross-entry `SvgFigure`
+  constructor identity is not guaranteed. Use a consistent entrypoint and its
+  own exported class for `instanceof`; structural/API and declaration
+  compatibility are tested, not an ESM singleton-identity contract
+- The native `canvas` installation script was **not run**, and native canvas
+  execution is not certified. No package lifecycle script was enabled to get
+  these passing results; esbuild used its installed platform package
+- The 196 browser tests still use the explicit fake ECharts/window/timer
+  boundary. Real browser/ECharts rendering, DOM/canvas integration, animation,
+  interaction, and CI acceptance remain unverified
+- This checkpoint did not repeat the earlier SVG corpus/raster/visual sweep or
+  perform a dependency vulnerability audit. Earlier renderer-scope limits and
+  bounded numeric/data contracts remain unchanged
