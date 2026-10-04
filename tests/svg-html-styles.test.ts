@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { parseDocument, checkStylesheet } from './helpers/html-document.js'
 import { figure, CANONICAL_THEME_NAMES, getCanonicalTheme, type SvgFigureOptions } from '../src/svg/index.js'
 import { esc } from '../src/util/html.js'
-import { ACCENTS, generateStyles, palette, type AccentName } from '../src/style/tokens.js'
+import { ACCENTS, generateStyles, generateFigureStyles, palette, type AccentName } from '../src/style/tokens.js'
 
 const cases: Array<[string, SvgFigureOptions]> = [
   ['default', {}],
@@ -21,14 +21,14 @@ for (const [name, options] of cases) {
       const parsed = parseDocument(html)
       assert.deepEqual(parsed.titles, [esc(title)])
       assert.ok(!parsed.elements.some(e => ['script', 'iframe'].includes(e.tag)))
-      assert.ok(html.includes(chart.render()), 'SVG source remains verbatim in the HTML')
+      assert.ok(html.includes(chart.renderFrame(0).match(/<rect[^>]*\/>/)![0]), 'unchanged mark geometry is embedded in the animated HTML')
       const theme = options.theme ? getCanonicalTheme(options.theme) : undefined
       const colors = theme ? {
         ink: theme.tokens['--ink'], accent: theme.tokens['--accent'],
         paper: theme.tokens['--paper'], neutral: theme.tokens['--grid'],
       } : palette(options.accent)
-      const originalRules = generateStyles(colors).slice('<style>'.length, -'</style>'.length)
-      assert.ok(css.includes(originalRules), 'all palette and animation rules are retained byte-for-byte')
+      const originalRules = generateFigureStyles(colors, false, false).slice('<style>'.length, -'</style>'.length)
+      assert.ok(css.includes(originalRules), 'palette and layout rules remain exact; Figure motion uses bounded scoped rules')
       assert.ok(css.includes(`body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${theme?.tokens['--paper'] ?? '#f5f5f7'}; }`))
       assert.ok(css.includes(`.chart-container { background: ${theme?.tokens['--paper'] ?? 'white'};`))
     })
@@ -37,7 +37,7 @@ for (const [name, options] of cases) {
 
 test('the regression parser rejects the original nested style defect', () => {
   const valid = figure().bar({ categories: ['A'], series: [{ values: [2] }] }).renderHtml()
-  const styles = generateStyles(palette())
+  const styles = generateFigureStyles(palette(), false, false)
   const broken = valid.replace(styles.slice('<style>'.length, -'</style>'.length), styles)
   assert.throws(() => checkStylesheet(broken), /unbalanced|stylesheet/)
 })

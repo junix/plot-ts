@@ -14,6 +14,7 @@ import { COLORS } from '../style/palette.js';
 import { h, join, text, n } from '../util/html.js';
 import { estimateTextWidth, fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
 import { assertFiniteDomain, assertFiniteTotal, niceUpperBound } from './numeric.js';
+import type { SvgMotionPlan } from './motion.js';
 import {
   plot,
   svg,
@@ -46,7 +47,7 @@ export interface ColumnChart {
   precision?: number;
 }
 
-export function renderColumn(c: ColumnChart, width: number, height: number, theme?: CanonicalTheme): Html {
+export function renderColumn(c: ColumnChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   assertPanelDimensions(c.type, width, height);
   const stacked = !!c.stacked;
   const showLabels = c.labels !== false;
@@ -121,6 +122,7 @@ export function renderColumn(c: ColumnChart, width: number, height: number, them
   c.categories.forEach((_, ci) => {
     // Keep series order top-to-bottom on each side of zero. Positive stacks
     // retain their existing geometry; negative stacks begin at the baseline.
+    const categoryBars: Html[] = [];
     let positiveUpper = totals[ci] as number;
     let negativeUpper = 0;
 
@@ -149,23 +151,24 @@ export function renderColumn(c: ColumnChart, width: number, height: number, them
       }
 
       barSurfaces.push({ x, y: yTop, width: barW, height: Math.max(0.5, barH), color });
-      bars.push(h('rect', {
-        class: 'plt-grow',
-        style: `--i:${ci * c.series.length + si}`,
+      const mark = h('rect', {
+        class: motion ? undefined : 'plt-grow',
+        style: motion ? undefined : `--i:${ci * c.series.length + si}`,
         x: n(x),
         y: n(yTop),
         width: n(barW),
         height: n(Math.max(0.5, barH)),
         fill: color,
         opacity: opacity === 1 ? undefined : opacity,
-      }));
+      });
+      if (motion && stacked) categoryBars.push(mark);
+      else bars.push(motion ? motion.grow(mark, Number(n(zeroY)), height) : mark);
 
       // Labels keep their legacy position above each segment. For canonical
       // stacks this can be paper or another segment, not the current mark.
       // Defer contrast choice until all positive/negative rectangles are known.
       if (showLabels && barH >= 13) {
-        labelRenderers.push(() => fadeIn(
-          ci * c.series.length + si,
+        labelRenderers.push(() => (motion ? (body: Html) => motion.fade(body) : (body: Html) => fadeIn(ci * c.series.length + si, body))(
           text(x + barW / 2, yTop - 5, fmt(v, c.format, c.precision), {
             size: 10,
             weight: 700,
@@ -175,6 +178,7 @@ export function renderColumn(c: ColumnChart, width: number, height: number, them
         ));
       }
     });
+    if (motion && categoryBars.length) bars.push(motion.grow(categoryBars.join(''), Number(n(zeroY)), height));
   });
 
   labels.push(...labelRenderers.map(render => render()));
@@ -312,7 +316,7 @@ export interface ScatterChart {
   xAxis?: boolean;
 }
 
-export function renderScatter(c: ScatterChart, width: number, height: number, theme?: CanonicalTheme): Html {
+export function renderScatter(c: ScatterChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
   // Only finite coordinate pairs contribute to either domain or marker bounds.
@@ -373,20 +377,37 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
   }
 
   const { color } = seriesTone(0, undefined, theme);
-  const circles = markers.map(({ i, cx, cy, r }) => h('circle', {
-    class: 'plt-fade',
-    style: `--i:${i}`,
-    cx,
-    cy,
-    r,
-    fill: color,
-    opacity: 0.7,
-  }));
+  const circles = markers.map(({ i, cx, cy, r }) => {
+    const mark = h('circle', {
+      class: motion ? undefined : 'plt-fade',
+      style: motion ? undefined : `--i:${i}`,
+      cx,
+      cy,
+      r,
+      fill: color,
+      opacity: 0.7,
+    });
+    return motion ? motion.fade(mark, scatterMotionRise(cy, r, height)) : mark;
+  });
 
   return svg(width, height, join(
     showAxis ? gridLines(p, yMin, yMax, 4, theme) : '',
     ...circles,
   ));
+}
+
+/** Floor exact emitted bottom slack to 0.01px, never changing static padding. */
+function scatterMotionRise(center: string, radius: string, extent: number): number {
+  const decimal = (value: string): { coefficient: bigint; exponent: number } => {
+    const [mantissa, power = '0'] = value.split('e');
+    const [whole, fraction = ''] = mantissa!.split('.');
+    return { coefficient: BigInt(whole! + fraction), exponent: Number(power) - fraction.length };
+  };
+  const values = [decimal(center), decimal(radius), decimal(String(extent))];
+  const exponent = Math.min(-2, ...values.map(value => value.exponent));
+  const [c, r, end] = values.map(value => value.coefficient * 10n ** BigInt(value.exponent - exponent));
+  const hundredths = (end! - c! - r!) / 10n ** BigInt(-2 - exponent);
+  return Number(hundredths < 0n ? 0n : hundredths > 800n ? 800n : hundredths) / 100;
 }
 
 /** Compare the emitted decimal geometry exactly, including scientific notation.

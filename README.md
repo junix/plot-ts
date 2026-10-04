@@ -166,6 +166,16 @@ await fs.writeFile('report.html', html)
 console.log('✅ 报告已生成')
 ```
 
+### SVG 入场动画与确定性帧
+
+`animated: true` 输出自带 CSS 的 SVG/HTML；`false` 关闭图表自身的动画。
+省略时 `render()` 保留原有静态字节，`renderHtml()` 保留入场效果并改用安全、有限的动画计划。
+当前作用于柱图、柱图数值标签和散点；其他图表保持静态。
+`renderFrame(timeMs, { reducedMotion? })` 可生成无浏览器、无状态的确定性 SVG 帧。
+全部入场在 1.6 秒内结束，最多 2048 个实际动画目标；显式动画超限报错，默认 HTML 超限整体静态回退。
+完整语义、默认 HTML 兼容性变化、零基线/透明度/边界保证和原生验证范围见
+[SVG entry motion](docs/svg-entry-motion.md)。真实浏览器动画验收仍是独立步骤。
+
 ### SVG 多图网格
 
 连续添加图表会按添加顺序排入独立面板，默认采用接近正方形的网格。

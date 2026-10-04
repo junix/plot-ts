@@ -1,3 +1,4 @@
+import { semanticMarks } from './helpers/svg-motion.js';
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -65,7 +66,7 @@ for (const name of CANONICAL_THEME_NAMES) {
       assert.ok(themed.includes(theme.tokens[token]), `${name} missing token ${token}`)
     }
     const html = chart.renderHtml()
-    assert.ok(html.includes(themed))
+    assert.deepEqual(semanticMarks(html), semanticMarks(themed))
     assert.equal((html.match(/<style>/g) ?? []).length, 1)
     assert.equal((html.match(/<\/style>/g) ?? []).length, 1)
     assert.ok(html.includes(`background: ${theme.tokens['--paper']};`))

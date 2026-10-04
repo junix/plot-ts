@@ -151,7 +151,8 @@ const dataDomainChecks = `
         assert.doesNotMatch(result, /NaN|Infinity|undefined/);
         assert.equal(createHash('sha256').update(result).digest('hex'), domainGolden[sample.name]);
         assert.equal(chart.render(), result);
-        assert.ok(chart.renderHtml().includes(result));
+        assert.equal(chart.renderFrame(1600), result);
+        assert.doesNotThrow(() => chart.renderHtml());
       }
       assert.deepEqual(sample.config, original);
     }
@@ -226,7 +227,7 @@ test('packed SVG entry enforces panel geometry for all ten chart families', () =
 
 test('packed declarations resolve the SVG entry in a clean NodeNext consumer', () => {
   writeFileSync(join(consumer, 'svg.ts'), `
-    import { figure, SvgFigure, type SvgFigureOptions } from 'plot-ts/svg';
+    import { figure, SvgFigure, type SvgFigureOptions, type SvgFrameOptions } from 'plot-ts/svg';
     const options: SvgFigureOptions = { width: 400, height: 300, theme: 'sage-dark', surfacePolicy: 'transparent-auto-v1' };
     // @ts-expect-error Surface policy identifiers are versioned and exact.
     figure({ surfacePolicy: 'transparent' });
@@ -234,6 +235,12 @@ test('packed declarations resolve the SVG entry in a clean NodeNext consumer', (
     figure({ theme: 'not-canonical' });
     const chart: SvgFigure = figure(options);
     const output: string = chart.bar({ categories: ['A'], series: [{ values: [2] }] }).render();
+    const frameOptions: SvgFrameOptions = { reducedMotion: true };
+    const frame: string = chart.renderFrame(1600, frameOptions);
+    // @ts-expect-error Frame time must be numeric.
+    chart.renderFrame('start');
+    // @ts-expect-error reducedMotion must be a boolean.
+    chart.renderFrame(0, { reducedMotion: 1 });
     // @ts-expect-error SVG entry does not accept the browser's container/config signature.
     figure(document.body, { width: 400 });
     // @ts-expect-error Width must be numeric.
@@ -247,6 +254,29 @@ test('packed declarations resolve the SVG entry in a clean NodeNext consumer', (
     cwd: consumer, encoding: 'utf8',
   })
 })
+
+test('packed SVG entry motion and pure frames work without runtime dependencies', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure } from 'plot-ts/svg';
+    const config = {points:[{x:0,y:0,size:24},{x:1,y:1,size:24}]};
+    const plain = figure().scatter(config).render();
+    const active = figure({animated:true}).scatter(config);
+    assert.ok(active.render().includes('plot-ts-svg-entry-v1-fade'));
+    assert.ok(active.render().includes('opacity="0.7"'));
+    assert.equal(active.renderFrame(1600),plain);
+    assert.equal(active.renderFrame(0,{reducedMotion:true}),plain);
+    assert.notEqual(active.renderFrame(100),active.renderFrame(0));
+    assert.equal(active.renderFrame(100),active.renderFrame(100));
+    assert.ok(!figure({animated:false}).scatter(config).renderHtml().includes('@keyframes'));
+    assert.throws(()=>active.renderFrame(NaN),RangeError);
+    const dense={points:Array.from({length:2049},(_,i)=>({x:i,y:i%3,size:0}))};
+    assert.throws(()=>figure({animated:true}).scatter(dense).render(),/2048/);
+    assert.ok(!figure().scatter(dense).renderHtml().includes('data-plot-motion'));
+    console.log('Packed entry motion passed');
+  `);
+  assert.match(output,/Packed entry motion passed/);
+});
 
 test('root export preserves browser API and SVG namespace with its declared ECharts dependency', () => {
   symlinkSync(dirname(require.resolve('echarts/package.json')), join(consumer, 'node_modules', 'echarts'), 'junction')
@@ -263,6 +293,9 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     assert.ok(svg.figure() instanceof svg.SvgFigure);
     assert.ok(svg.figure().render().startsWith('<svg'));
     assert.ok(svgFigure() instanceof SvgFigure);
+    const moving = svg.figure({ animated: true }).scatter({ points: [{ x: 0, y: 0 }] });
+    assert.ok(moving.render().includes('plot-ts-svg-entry-v1-fade'));
+    assert.equal(moving.renderFrame(1600), svg.figure().scatter({ points: [{ x: 0, y: 0 }] }).render());
     const domainFigure = svg.figure;
     ${dataDomainChecks}
     const panelFigure = svg.figure;
@@ -289,3 +322,5 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     cwd: consumer, encoding: 'utf8',
   })
 })
+
+

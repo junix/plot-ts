@@ -15,6 +15,8 @@ import { getCanonicalTheme, type CanonicalTheme, type CanonicalThemeName } from 
 export { CANONICAL_THEME_NAMES, getCanonicalTheme, type CanonicalThemeName, type CanonicalTheme, type CanonicalTokenName } from '../style/canonical.js';
 import { parseSurfacePolicy, surfaceFill, type SurfacePolicy } from '../style/surface.js';
 export { SURFACE_POLICY_VERSION, SURFACE_POLICIES, parseSurfacePolicy, type SurfacePolicy } from '../style/surface.js';
+import { MotionTargetLimitError, SVG_MOTION_END_MS, SvgMotionPlan, svgMotionCss, type SvgFrameOptions } from './motion.js';
+export type { SvgFrameOptions } from './motion.js';
 import type { Html } from '../util/html.js';
 import { esc, h, join } from '../util/html.js';
 import { generateFigureStyles, palette, type AccentName } from '../style/tokens.js';
@@ -66,6 +68,7 @@ export interface SvgFigureOptions {
   theme?: CanonicalThemeName;
   /** Controls only registered automatic SVG/HTML backings; semantic paints stay. */
   surfacePolicy?: SurfacePolicy;
+  /** true: self-contained SVG/HTML entry motion; false: static. Omitted: static SVG, bounded entry HTML. */
   animated?: boolean;
   /** Independent panels per row; defaults to a near-square grid. */
   columns?: number;
@@ -95,6 +98,7 @@ export class SvgFigure {
   private accent: AccentName;
   private theme: CanonicalTheme | undefined;
   private surfacePolicy: SurfacePolicy;
+  private animated: boolean | undefined;
   private columns: number | undefined;
   private gap: number;
   private charts: Chart[] = [];
@@ -106,6 +110,10 @@ export class SvgFigure {
     this.title = options.title;
     this.accent = options.accent ?? 'cyan';
     this.theme = options.theme === undefined ? undefined : getCanonicalTheme(options.theme);
+    this.animated = options.animated;
+    if (this.animated !== undefined && typeof this.animated !== 'boolean') {
+      throw new RangeError('SVG animated must be a boolean when provided');
+    }
     this.columns = options.columns;
     this.gap = options.gap ?? 16;
     if (!Number.isFinite(this.width) || this.width <= 0 ||
@@ -183,9 +191,41 @@ export class SvgFigure {
 
   /** 渲染为 SVG 字符串 */
   render(): string {
+    if (this.animated !== true) return this.renderStatic();
+    const result = this.renderEntry();
+    return result.css ? result.svg.replace('>\n', `>\n  ${h('style', {}, result.css)}`) : result.svg;
+  }
+
+  /** Deterministic CSS-free entry snapshot; no mutable player or browser required.
+   * Explicit false, reduced motion, and times >=1600ms use validated static output
+   * without a target budget. Other frames explicitly request bounded entry motion.
+   */
+  renderFrame(timeMs: number, options: SvgFrameOptions = {}): string {
+    if (!Number.isFinite(timeMs) || timeMs < 0) {
+      throw new RangeError('SVG frame time must be finite and non-negative');
+    }
+    if (!options || typeof options !== 'object' || Array.isArray(options) ||
+        (options.reducedMotion !== undefined && typeof options.reducedMotion !== 'boolean')) {
+      throw new RangeError('SVG frame reducedMotion must be a boolean when provided');
+    }
+    if (this.animated === false || options.reducedMotion === true || timeMs >= SVG_MOTION_END_MS) {
+      return this.renderStatic();
+    }
+    const plan = new SvgMotionPlan();
+    const svg = this.renderStatic(plan);
+    return timeMs >= plan.endMs ? this.renderStatic() : plan.apply(svg, timeMs).replace('data-plot-motion="entry-v1"', 'data-plot-motion="frame-v1"');
+  }
+
+  private renderEntry(): { svg: string; css: string } {
+    const plan = new SvgMotionPlan();
+    const svg = this.renderStatic(plan);
+    return plan.endMs ? { svg: plan.apply(svg), css: svgMotionCss() } : { svg: this.renderStatic(), css: '' };
+  }
+
+  private renderStatic(motion?: SvgMotionPlan): string {
     const chart = this.charts[0];
     if (!chart) {
-      return this.wrapSvg('');
+      return this.wrapSvg('', motion);
     }
 
     // 标题留白
@@ -194,8 +234,8 @@ export class SvgFigure {
     // Keep the single-chart markup unchanged. Multiple charts get independent
     // viewports and domains, in the order they were added.
     const chartSvg = this.charts.length === 1
-      ? renderChart(chart, this.width, chartH, this.theme)
-      : this.renderPanels(chartH);
+      ? renderChart(chart, this.width, chartH, this.theme, motion)
+      : this.renderPanels(chartH, motion);
 
     const titleElem = this.title
       ? h('text', {
@@ -208,10 +248,10 @@ export class SvgFigure {
       }, esc(this.title))
       : '';
 
-    return this.wrapSvg(join(titleElem, h('g', { transform: `translate(0, ${titleH})` }, chartSvg)));
+    return this.wrapSvg(join(titleElem, h('g', { transform: `translate(0, ${titleH})` }, chartSvg)), motion);
   }
 
-  private renderPanels(height: number): Html {
+  private renderPanels(height: number, motion?: SvgMotionPlan): Html {
     const count = this.charts.length;
     const columns = Math.min(this.columns ?? Math.ceil(Math.sqrt(count)), count);
     const rows = Math.ceil(count / columns);
@@ -233,16 +273,27 @@ export class SvgFigure {
         'data-panel-index': index,
         'data-chart-type': chart.type,
         transform: `translate(${x}, ${y})`,
-      }, renderChart(chart, panelWidth, panelHeight, this.theme));
+      }, renderChart(chart, panelWidth, panelHeight, this.theme, motion));
     }));
   }
 
   /** 渲染为完整的 HTML 页面（带样式和动画） */
   renderHtml(): string {
-    const styles = generateFigureStyles(this.theme ? { ink: this.theme.tokens['--ink'], accent: this.theme.tokens['--accent'], paper: this.theme.tokens['--paper'], neutral: this.theme.tokens['--grid'] } : palette(this.accent), this.surfacePolicy === 'transparent-auto-v1');
+    let result: { svg: string; css: string };
+    if (this.animated === false) result = { svg: this.renderStatic(), css: '' };
+    else {
+      try { result = this.renderEntry(); }
+      catch (error) {
+        // The historic HTML default remains usable for dense static reports.
+        // Explicit animated:true and explicit intermediate frames never degrade.
+        if (this.animated !== undefined || !(error instanceof MotionTargetLimitError)) throw error;
+        result = { svg: this.renderStatic(), css: '' };
+      }
+    }
+    const styles = generateFigureStyles(this.theme ? { ink: this.theme.tokens['--ink'], accent: this.theme.tokens['--accent'], paper: this.theme.tokens['--paper'], neutral: this.theme.tokens['--grid'] } : palette(this.accent), this.surfacePolicy === 'transparent-auto-v1', false);
     // generateStyles returns a complete <style> element. This document already
     // has a stylesheet, so insert only its rules for every palette.
-    const inlineStyles = styles.slice('<style>'.length, -'</style>'.length);
+    const inlineStyles = styles.slice('<style>'.length, -'</style>'.length) + result.css;
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -256,25 +307,25 @@ export class SvgFigure {
 </head>
 <body>
   <div class="chart-container">
-    ${this.render()}
+    ${result.svg}
   </div>
 </body>
 </html>`;
   }
 
-  private wrapSvg(content: Html): string {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+  private wrapSvg(content: Html, motion?: SvgMotionPlan): string {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}"${motion ? ' data-plot-motion="entry-v1"' : ''} style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
   ${this.theme ? h('rect', { width: this.width, height: this.height, fill: surfaceFill(this.surfacePolicy, 'root', this.theme.tokens['--paper'], 'none'), 'data-plot-surface': 'paper' }) : ''}${content}
 </svg>`;
   }
 }
 
 /** Dispatch each panel through the same renderer used by single-chart figures. */
-function renderChart(chart: Chart, width: number, height: number, theme?: CanonicalTheme): Html {
+function renderChart(chart: Chart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   switch (chart.type) {
-    case 'column': return renderColumn(chart, width, height, theme);
+    case 'column': return renderColumn(chart, width, height, theme, motion);
     case 'line': return renderLine(chart, width, height, theme);
-    case 'scatter': return renderScatter(chart, width, height, theme);
+    case 'scatter': return renderScatter(chart, width, height, theme, motion);
     case 'heatmap': return renderHeatmap(chart, width, height, theme);
     case 'waterfall': return renderWaterfall(chart, width, height, theme);
     case 'donut': return renderDonut(chart, width, height, theme);

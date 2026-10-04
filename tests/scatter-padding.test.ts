@@ -1,3 +1,7 @@
+import { embeddedSvg, semanticMarks } from './helpers/svg-motion.js';
+import { getCanonicalTheme } from '../src/style/canonical.js';
+import { generateStyles, generateFigureStyles, palette } from '../src/style/tokens.js';
+import { svgMotionCss } from '../src/svg/motion.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
@@ -127,11 +131,22 @@ test('composition validates actual titled/gapped panel dimensions and keeps each
   assert.throws(() => make(60).renderHtml(), RangeError);
 });
 
-test('legacy-safe fixtures retain exact baseline SVG and HTML bytes', () => {
+test('legacy-safe fixtures retain exact SVG and HTML bytes outside the scoped motion replacement', () => {
   const records = JSON.parse(readFileSync(new URL('./fixtures/scatter-padding-golden.json', import.meta.url), 'utf8'));
   for (const record of records) {
     const report = figure(record.options).scatter(record.config);
-    const bytes = record.html ? report.renderHtml() : report.render();
+    let bytes = report.render();
+    if (record.html) {
+      const html = report.renderHtml();
+      assert.deepEqual(semanticMarks(html), semanticMarks(bytes));
+      // Keep the old HTML hashes. Reverse only the explicitly changed motion
+      // wrapper/CSS contract; every other HTML byte remains baseline-locked.
+      const theme = record.options.theme ? getCanonicalTheme(record.options.theme) : undefined;
+      const colors = theme ? { ink: theme.tokens['--ink'], accent: theme.tokens['--accent'], paper: theme.tokens['--paper'], neutral: theme.tokens['--grid'] } : palette();
+      const newRules = generateFigureStyles(colors, false, false).slice(7, -8) + svgMotionCss();
+      const oldRules = generateStyles(colors).slice(7, -8);
+      bytes = html.replace(embeddedSvg(html), bytes).replace(newRules, oldRules);
+    }
     assert.equal(createHash('sha256').update(bytes).digest('hex'), record.sha256, record.name);
   }
 });

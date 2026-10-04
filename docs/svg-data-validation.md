@@ -40,7 +40,8 @@ on which violation is reported first.
   non-negative
 - Scatter still omits a point if either coordinate is nonfinite. Its omitted
   point's size is not checked. Size defaults to `4`; `0` and `-0` are allowed.
-  Original animation indices are retained for rendered points. Size is the circle
+  Static SVG retains original animation indices for rendered points; bounded
+  [entry motion](svg-entry-motion.md) uses rendered ordinals instead. Size is the circle
   radius in pixels. [Marker-aware bounds](svg-scatter-bounds.md) expand insufficient
   insets, or reject an oversized radius when no positive drawable area remains
 - Line retains its existing finite-pair omission and gap behavior

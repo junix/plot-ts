@@ -1,3 +1,4 @@
+import { semanticMarks } from './helpers/svg-motion.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
@@ -29,7 +30,7 @@ for (const sample of cases) {
         assert.doesNotMatch(output, /NaN|Infinity|undefined/);
         assert.equal(sha(output), golden[sample.name]);
         assert.equal(chart.render(), output);
-        assert.ok(chart.renderHtml().includes(output));
+        assert.deepEqual(semanticMarks(chart.renderHtml()), semanticMarks(output));
         assert.doesNotThrow(() => add(entry({ width: 1000, height: 500 }).heatmap({ data: [[1]] }), sample).render());
       }
     }

@@ -1,3 +1,4 @@
+import { semanticMarks } from './helpers/svg-motion.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
@@ -43,7 +44,7 @@ for (const sample of panelCases) {
             assert.doesNotMatch(output, /NaN|Infinity/);
             assert.equal(sha(output), golden[`${key}/figure/${title}`]);
             assert.equal(chart.render(), output);
-            assert.ok(chart.renderHtml().includes(output));
+            assert.deepEqual(semanticMarks(chart.renderHtml()), semanticMarks(output));
           }
         }
       }

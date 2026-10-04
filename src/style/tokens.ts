@@ -167,7 +167,7 @@ export function generateStyles(p: Palette = palette()): Html {
 }
 
 /** Internal figure adapter: only the registered panel rule changes. */
-export function generateFigureStyles(p: Palette, transparentPanel: boolean): Html {
+export function generateFigureStyles(p: Palette, transparentPanel: boolean, legacyMotion = true): Html {
   return h('style', {}, `
     /* plot-ts 核心样式 */
     :root {
@@ -192,7 +192,7 @@ export function generateFigureStyles(p: Palette, transparentPanel: boolean): Htm
       fill: var(--ink-body);
     }
 
-    /* 图表入场动画 */
+${legacyMotion ? `    /* 图表入场动画 */
     .plt-grow {
       transform-origin: bottom;
       animation: plt-grow ${MOTION.chartDuration}ms ${MOTION.easeOut} forwards;
@@ -214,7 +214,7 @@ export function generateFigureStyles(p: Palette, transparentPanel: boolean): Htm
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .plt-chart {
+` : ''}    .plt-chart {
       background: ${transparentPanel ? 'transparent' : 'var(--paper)'};
       position: relative;
     }

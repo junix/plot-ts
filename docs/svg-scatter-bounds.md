@@ -3,10 +3,12 @@
 `plot-ts/svg` scatter `points[].size` is a circle **radius** in pixels, defaulting
 to 4. Circles are fill-only: the renderer has no stroke or stroke-width option.
 The bounds below cover static emitted circles. They do not cover later
-user-authored CSS strokes, filters or transforms, or transient frames of the
-existing HTML `.plt-fade` entry animation (which includes a downward translation).
-Those animation classes and transforms are unchanged; browser animation
-containment remains unverified. The browser Figure/ECharts renderer is unchanged.
+user-authored CSS strokes, filters or transforms. Figure-owned entry motion now
+uses separate `entry-v1` wrappers and clamps rise to actual emitted bottom slack,
+without changing these static insets or marks; see [SVG entry motion](svg-entry-motion.md).
+Deterministic native frames cover transient geometry and alpha. Live browser CSS
+playback and reduced-motion behavior remain a separate, unverified acceptance
+gate. The browser Figure/ECharts renderer is unchanged.
 
 ## Marker-aware insets
 
@@ -16,9 +18,11 @@ Each inset smaller than that radius becomes `radius + 0.01px`; sufficient legacy
 insets remain exactly unchanged. The 0.01px allowance covers independent rounding
 of circle centers and radii by the existing two-decimal SVG serializer.
 
-All radii, data values, point order and original animation indices are preserved.
-The inferred x/y domains, nice y maximum, constant-domain mapping, finite-pair
-omission, colors, opacity and animation classes are unchanged. The drawable
+All radii, data values and point order are preserved. Static SVG retains its
+original legacy animation indices/classes; Figure-owned entry motion instead
+uses bounded rendered ordinals and wrappers. The inferred x/y domains, nice y
+maximum, constant-domain mapping, finite-pair omission, colors and child opacity
+are unchanged. The drawable
 coordinate range moves inward for large markers. `ScatterChart` has no explicit
 min/max domain options; this change does not add or reinterpret any.
 
@@ -26,7 +30,9 @@ The largest radius is reserved on every side, including when that mark is an
 interior point. This intentionally provides one consistent linear mapping for
 all points. It does not move individual marks independently, resize radii or
 change the domain to fit each marker. All ordinary radii at or below 10px retain
-existing SVG/HTML bytes when their emitted markers fit the panel.
+existing static SVG bytes when their emitted markers fit the panel. The bounded
+entry-motion feature intentionally changes default HTML wrapper/CSS bytes while
+preserving its geometry, themes and surface policy.
 
 ## Rejection and composition
 

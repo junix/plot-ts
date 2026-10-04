@@ -1,3 +1,4 @@
+import { embeddedSvg, semanticMarks } from './helpers/svg-motion.js';
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { figure, CANONICAL_THEME_NAMES, getCanonicalTheme, SURFACE_POLICIES, SURFACE_POLICY_VERSION, parseSurfacePolicy, type SvgFigureOptions } from '../src/svg/index.js'
@@ -52,7 +53,7 @@ for (const [name, options] of cases) {
   })
   test(`${name}: HTML distinguishes root and panel fills without changing tokens, CSS animation, or classes`, () => {
     const base = addAllSvgCharts(figure({ ...layout, ...options }))
-    const baseSvg = base.render(), baseHtml = base.renderHtml()
+    const baseHtml = base.renderHtml(), baseSvg = embeddedSvg(baseHtml)
     const baseCss = checkStylesheet(baseHtml)
     const paper = options.theme ? getCanonicalTheme(options.theme).tokens['--paper'] : undefined
     assert.equal(addAllSvgCharts(figure({ ...layout, ...options, surfacePolicy: 'themed-v1' })).renderHtml(), baseHtml)
@@ -71,7 +72,7 @@ for (const [name, options] of cases) {
       assert.equal(html, baseHtml.replace(baseSvg, clearRoot(baseSvg)).replace(baseCss, expectedCss))
       assert.deepEqual(parseDocument(html).elements, parseDocument(baseHtml).elements)
       assert.ok(!parseDocument(html).elements.some(e => e.tag === 'script'))
-      assert.ok(html.includes(chart.render()))
+      assert.deepEqual(semanticMarks(html), semanticMarks(chart.render()))
     }
   })
 }
