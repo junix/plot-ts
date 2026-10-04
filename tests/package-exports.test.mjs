@@ -74,6 +74,24 @@ test('packed canonical SVG registry and all variants work without runtime depend
   assert.match(output, /Packed canonical themes passed/)
 })
 
+test('packed SVG surface policy works without runtime dependencies and preserves default bytes', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure, SURFACE_POLICIES, SURFACE_POLICY_VERSION, parseSurfacePolicy } from 'plot-ts/svg';
+    assert.equal(SURFACE_POLICY_VERSION, 'plot.surface-policy/v1');
+    assert.equal(SURFACE_POLICIES.length, 3);
+    const make = options => figure(options).bar({ categories: ['A'], series: [{ values: [2] }] });
+    assert.equal(make({}).renderHtml(), make({ surfacePolicy: 'themed-v1' }).renderHtml());
+    const chart = make({ theme: 'sage-dark', surfacePolicy: 'transparent-auto-v1' });
+    assert.match(chart.render(), /fill="none" data-plot-surface="paper"/);
+    assert.ok(chart.renderHtml().includes('.chart-container { background: transparent;'));
+    assert.throws(() => parseSurfacePolicy('transparent'), RangeError);
+    assert.throws(() => figure({ surfacePolicy: null }), RangeError);
+    console.log('Packed SVG surfaces passed');
+  `)
+  assert.match(output, /Packed SVG surfaces passed/)
+})
+
 test('packed SVG entry enforces the non-negative and explicit-option contracts', () => {
   const output = run(`
     import assert from 'node:assert/strict';
@@ -199,7 +217,9 @@ test('packed SVG entry enforces panel geometry for all ten chart families', () =
 test('packed declarations resolve the SVG entry in a clean NodeNext consumer', () => {
   writeFileSync(join(consumer, 'svg.ts'), `
     import { figure, SvgFigure, type SvgFigureOptions } from 'plot-ts/svg';
-    const options: SvgFigureOptions = { width: 400, height: 300, theme: 'sage-dark' };
+    const options: SvgFigureOptions = { width: 400, height: 300, theme: 'sage-dark', surfacePolicy: 'transparent-auto-v1' };
+    // @ts-expect-error Surface policy identifiers are versioned and exact.
+    figure({ surfacePolicy: 'transparent' });
     // @ts-expect-error SVG accepts exact canonical names only.
     figure({ theme: 'not-canonical' });
     const chart: SvgFigure = figure(options);
@@ -244,6 +264,8 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     import { figure, Figure, svg } from 'plot-ts';
     import type { SvgFigure } from 'plot-ts/svg';
     const chart: Figure = figure(document.body, { width: 400 });
+    // @ts-expect-error This unit does not add surfacePolicy to browser Figure.
+    figure(document.body, { surfacePolicy: 'transparent-auto-v1' });
     const report: SvgFigure = svg.figure({ width: 400 });
     // @ts-expect-error Browser entry requires a container.
     figure({ width: 400 });

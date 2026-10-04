@@ -13,9 +13,11 @@
 
 import { getCanonicalTheme, type CanonicalTheme, type CanonicalThemeName } from '../style/canonical.js';
 export { CANONICAL_THEME_NAMES, getCanonicalTheme, type CanonicalThemeName, type CanonicalTheme, type CanonicalTokenName } from '../style/canonical.js';
+import { parseSurfacePolicy, surfaceFill, type SurfacePolicy } from '../style/surface.js';
+export { SURFACE_POLICY_VERSION, SURFACE_POLICIES, parseSurfacePolicy, type SurfacePolicy } from '../style/surface.js';
 import type { Html } from '../util/html.js';
 import { esc, h, join } from '../util/html.js';
-import { generateStyles, palette, type AccentName } from '../style/tokens.js';
+import { generateFigureStyles, palette, type AccentName } from '../style/tokens.js';
 import {
   renderColumn,
   renderLine,
@@ -62,6 +64,8 @@ export interface SvgFigureOptions {
   accent?: AccentName;
   /** Opt in to a pinned canonical theme; omitted keeps the exact legacy output. */
   theme?: CanonicalThemeName;
+  /** Controls only registered automatic SVG/HTML backings; semantic paints stay. */
+  surfacePolicy?: SurfacePolicy;
   animated?: boolean;
   /** Independent panels per row; defaults to a near-square grid. */
   columns?: number;
@@ -90,11 +94,13 @@ export class SvgFigure {
   private title: string | undefined;
   private accent: AccentName;
   private theme: CanonicalTheme | undefined;
+  private surfacePolicy: SurfacePolicy;
   private columns: number | undefined;
   private gap: number;
   private charts: Chart[] = [];
 
   constructor(options: SvgFigureOptions = {}) {
+    this.surfacePolicy = options.surfacePolicy === undefined ? 'themed-v1' : parseSurfacePolicy(options.surfacePolicy);
     this.width = options.width ?? 800;
     this.height = options.height ?? 500;
     this.title = options.title;
@@ -233,7 +239,7 @@ export class SvgFigure {
 
   /** 渲染为完整的 HTML 页面（带样式和动画） */
   renderHtml(): string {
-    const styles = generateStyles(this.theme ? { ink: this.theme.tokens['--ink'], accent: this.theme.tokens['--accent'], paper: this.theme.tokens['--paper'], neutral: this.theme.tokens['--grid'] } : palette(this.accent));
+    const styles = generateFigureStyles(this.theme ? { ink: this.theme.tokens['--ink'], accent: this.theme.tokens['--accent'], paper: this.theme.tokens['--paper'], neutral: this.theme.tokens['--grid'] } : palette(this.accent), this.surfacePolicy === 'transparent-auto-v1');
     // generateStyles returns a complete <style> element. This document already
     // has a stylesheet, so insert only its rules for every palette.
     const inlineStyles = styles.slice('<style>'.length, -'</style>'.length);
@@ -243,8 +249,8 @@ export class SvgFigure {
   <meta charset="UTF-8">
   <title>${esc(this.title || 'plot-ts Chart')}</title>
   <style>
-    body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${this.theme?.tokens['--paper'] ?? '#f5f5f7'}; }
-    .chart-container { background: ${this.theme?.tokens['--paper'] ?? 'white'}; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20px; }
+    body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${surfaceFill(this.surfacePolicy, 'root', this.theme?.tokens['--paper'] ?? '#f5f5f7', 'transparent')}; }
+    .chart-container { background: ${surfaceFill(this.surfacePolicy, 'panel', this.theme?.tokens['--paper'] ?? 'white', 'transparent')}; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20px; }
     ${inlineStyles}
   </style>
 </head>
@@ -258,7 +264,7 @@ export class SvgFigure {
 
   private wrapSvg(content: Html): string {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-  ${this.theme ? h('rect', { width: this.width, height: this.height, fill: this.theme.tokens['--paper'], 'data-plot-surface': 'paper' }) : ''}${content}
+  ${this.theme ? h('rect', { width: this.width, height: this.height, fill: surfaceFill(this.surfacePolicy, 'root', this.theme.tokens['--paper'], 'none'), 'data-plot-surface': 'paper' }) : ''}${content}
 </svg>`;
   }
 }

@@ -351,6 +351,11 @@ Both engines accept the same 14 pinned canonical themes, for example
 Explicit mark colors, numerical heatmap colormaps and gauge bands keep precedence.
 See [canonical theme selection, mapping and verification](docs/canonical-themes.md).
 
+The SVG/HTML engine also accepts exact versioned `surfacePolicy` values, including
+`transparent-auto-v1`, while preserving semantic marks and default output. See
+[SVG automatic surfaces](docs/svg-surface-policy.md); browser Figure integration
+is separate.
+
 ## 📌 技术栈
 
 | 层 | 技术 | 说明 |

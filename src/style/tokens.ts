@@ -163,6 +163,11 @@ export const MOTION = {
  * 在浏览器端使用 SVG 渲染时可注入到文档头部。
  */
 export function generateStyles(p: Palette = palette()): Html {
+  return generateFigureStyles(p, false);
+}
+
+/** Internal figure adapter: only the registered panel rule changes. */
+export function generateFigureStyles(p: Palette, transparentPanel: boolean): Html {
   return h('style', {}, `
     /* plot-ts 核心样式 */
     :root {
@@ -210,7 +215,7 @@ export function generateStyles(p: Palette = palette()): Html {
     }
 
     .plt-chart {
-      background: var(--paper);
+      background: ${transparentPanel ? 'transparent' : 'var(--paper)'};
       position: relative;
     }
 
