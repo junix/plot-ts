@@ -234,9 +234,9 @@ export class SvgFigure {
   /** 渲染为完整的 HTML 页面（带样式和动画） */
   renderHtml(): string {
     const styles = generateStyles(this.theme ? { ink: this.theme.tokens['--ink'], accent: this.theme.tokens['--accent'], paper: this.theme.tokens['--paper'], neutral: this.theme.tokens['--grid'] } : palette(this.accent));
-    // generateStyles returns a complete <style> element. Canonical HTML already
-    // has a stylesheet, so insert only its rules; preserve legacy HTML bytes.
-    const inlineStyles = this.theme ? styles.slice('<style>'.length, -'</style>'.length) : styles;
+    // generateStyles returns a complete <style> element. This document already
+    // has a stylesheet, so insert only its rules for every palette.
+    const inlineStyles = styles.slice('<style>'.length, -'</style>'.length);
     return `<!DOCTYPE html>
 <html>
 <head>

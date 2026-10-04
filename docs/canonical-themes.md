@@ -75,10 +75,11 @@ inspection; not every token has a corresponding plot primitive.
 
 ## Compatibility
 
-Omitting the theme retains legacy SVG/HTML bytes, Figure options and white
-export matte. This includes the pre-existing malformed nested stylesheet in legacy
-`renderHtml()` output. The opt-in canonical branch emits a single valid stylesheet;
-repairing legacy HTML is intentionally separate from this compatibility-preserving unit. The six existing `THEMES` entries and `setTheme`/`withTheme` behavior
+Omitting the theme retains legacy SVG bytes, Figure options, stylesheet rules and
+white export matte. A separate HTML-only repair removes the inherited nested
+`<style>` wrapper from legacy `renderHtml()` output; every branch now emits one
+valid stylesheet. Canonical HTML bytes are unchanged by that repair. See the
+[HTML stylesheet verification](verification-html-styles-2026-10-04.md). The six existing `THEMES` entries and `setTheme`/`withTheme` behavior
 are unchanged and separate from canonical selection. Calling `setTheme('sage')`
 still rejects: select canonical colors explicitly on each figure instead.
 
