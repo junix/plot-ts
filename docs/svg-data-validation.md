@@ -1,7 +1,7 @@
-# SVG numeric-data boundaries
+# SVG numeric-data and option boundaries
 
-These are local fail-fast contracts for the pure SVG source API (`figure()` from
-`src/svg/index.ts`). They apply when `render()` runs, including inside composed
+These are local fail-fast contracts for the pure SVG API (`figure()` from
+`plot-ts/svg`, or `src/svg/index.ts` in the repository). They apply when `render()` runs, including inside composed
 figures. A failing chart throws a `RangeError` before `render()` can return an SVG;
 it does not return a partial chart or silently replace invalid observations.
 
@@ -12,25 +12,32 @@ it does not return a partial chart or silently replace invalid observations.
 | Waterfall | Every step is a finite number | `Waterfall values must be finite` |
 | Waterfall | Categories and values have equal counts | `Waterfall categories and values must have equal lengths` |
 | Donut | Every item's value is finite | `Donut values must be finite` |
+| Donut | Every item's value is non-negative | `Donut values must be non-negative` |
 | Radar | Every supplied series value is finite | `Radar values must be finite` |
+| Radar | Every supplied series value is non-negative, including extras | `Radar values must be non-negative` |
+| Radar | Every explicit axis maximum is finite and positive | `Radar maximum must be finite and positive` |
+| Gauge | A supplied `bands` option is an array | `Gauge bands must be an array` |
+| Gauge | Every custom band has finite numeric `from` and `to` endpoints | `Gauge band endpoints must be finite` |
+| Gauge | Every custom band satisfies `0 <= from <= to <= maximum` | `Gauge band endpoints must satisfy 0 <= from <= to <= maximum` |
 | Slope | Both endpoints of every item are finite | `Slope endpoints must be finite` |
 | Scatter | A point with finite x and y has a finite, non-negative size | `Scatter size must be finite and non-negative for finite coordinate pairs` |
 
-“Finite” excludes `NaN`, `Infinity` and `-Infinity`. These checks do not mutate the
+“Finite” requires a number and excludes `NaN`, `Infinity` and `-Infinity`.
+Non-negative includes `0` and `-0`; positive maxima exclude both. These checks do not mutate the
 input arrays. If more than one requirement is violated, callers should not depend
 on which violation is reported first.
 
 ## Preserved behavior
 
-- Ordinary finite chart output is unchanged by these validation guards, including
-  zero, constant and signed data. This change adds no new sign rule to donut or
-  radar and does not endorse a new interpretation of signed donut sectors
+- Existing non-negative donut/radar data and valid gauge bands retain their
+  geometry. Other chart families retain their existing signed-data contracts
 - Empty valid inputs retain their previous output. `[]`, `[[]]` and `[[], []]` are
   valid empty heatmaps; `[[], [1]]` is ragged and is rejected. An empty waterfall
   requires both lists to be empty
 - Radar series may have fewer values than axes; missing trailing values and sparse
-  entries retain their zero fallback. Extra finite values remain ignored by visible-axis normalization and
-  geometry. All supplied values, including extras, must still be finite
+  entries retain their zero fallback. Extra finite non-negative values remain ignored by visible-axis normalization
+  and geometry. All supplied values, including extras, must still be finite and
+  non-negative
 - Scatter still omits a point if either coordinate is nonfinite. Its omitted
   point's size is not checked. Size defaults to `4`; `0` and `-0` are allowed.
   Original animation indices are retained for rendered points
@@ -40,10 +47,51 @@ For example, a scatter point `{ x: NaN, y: 1, size: -1 }` is omitted, while
 `{ x: 0, y: 1, size: -1 }` causes `render()` to throw. Likewise, a radar series with
 `values: [1]` may still be rendered against three axes; `values: [1, NaN]` may not.
 
-## Source validation
+## Intentional sign and option contract changes
+
+The SVG donut renderer models non-negative shares of a total. The SVG radar
+renderer models non-negative radii on axes beginning at zero; it does not provide
+signed-axis semantics. Earlier versions returned SVG for finite negative donut
+and radar values, but that did not establish a meaningful signed interpretation.
+These inputs now intentionally throw, including cancelling donut values such as
+`[-1, 1]` that previously returned an empty chart. This is a behavior change,
+not a backward-compatible validation cleanup. Callers must supply data that
+already fits the chosen chart; the renderer does not take absolute values, drop
+negative observations, shift the scale, or assign a new statistical meaning.
+
+Radar maxima have an equally explicit contract change: a supplied `axis.max`
+that is zero, negative, nonfinite or nonnumeric now throws instead of silently
+using the inferred scale. Omitted maxima (or runtime `undefined`) still use one
+shared inferred maximum across all series and declared axes, with `1` for empty
+or all-zero data. Valid explicit per-axis maxima still override that scale and
+retain the existing upper-radius clipping. Validation runs even with no series
+or observations. Sparse/missing values retain their zero fallback; explicitly
+supplied invalid values do not count as missing.
+
+Custom gauge bands are coordinates in the resolved `0..maximum` scale. Endpoints
+must be finite numbers with `0 <= from <= to <= maximum`. Reversed or out-of-range
+bands now throw rather than drawing uncontrolled arcs. A missing, nonnumeric or
+nonfinite endpoint, a missing/null band, or a sparse entry throws the endpoint
+error. A non-array `bands` value, including `null`, throws the array error.
+
+Omitting `bands` (or using runtime `undefined`) retains the default three bands;
+`[]` draws none. Zero-length bands remain accepted at any point on the scale,
+including both endpoints, and retain their existing zero-area path. Gaps,
+overlaps, unsorted band lists, colors and drawing order are preserved: validation
+does not merge, sort, clamp or normalize them. Bounds use the resolved maximum,
+including the `0..1` fallback for a zero gauge value. The gauge value's existing
+finite-input, explicit-positive-max and pointer-clamping rules are unchanged.
+This is endpoint validation, not a CSS/SVG paint parser or global object schema.
+
+The old signed-input and invalid-maximum regression cases remain in the test
+suite as documented before/after witnesses. Positive values, zeroes, missing
+radar entries, explicit positive maxima, ordinary/default gauge bands and wide
+252-degree bands remain covered by the original geometry tests.
+
+## Earlier numeric-data checkpoint (historical)
 
 `tests/svg-data-validation.test.ts` exercises the exported fluent source API. It
-contains explicit assertions for the twelve malformed-SVG witnesses from the
+originally contained explicit assertions for the twelve malformed-SVG witnesses from the
 bounded 118-case audit, plus the corresponding ragged-long heatmap and extra-value
 waterfall shape contracts. Further cases cover each nonfinite number alone and
 among valid values, both slope endpoints, radar extras and partial/sparse values, empty
@@ -84,3 +132,20 @@ workflow, installed-package exports, a browser engine, or CI. They are not a glo
 schema validator or a guarantee for every finite IEEE-754 magnitude. Arithmetic
 overflow, scale/configuration options, dimensions and other chart families are
 outside this narrow data-boundary change.
+
+
+## Sign/option contract verification
+
+`tests/svg-option-contracts.test.ts` exercises the sign/max/band errors, runtime
+malformed endpoints, zero/negative-zero, radar extras and missing entries,
+empty-series maxima, inferred gauge bounds, zero-length/overlapping/gapped bands,
+render-time mutation, composition, determinism, and input preservation. The
+updated legacy tests explicitly record which previously accepted inputs now
+reject. `tests/package-exports.test.mjs` checks the same public error contracts
+through the actual packed `plot-ts/svg` entry with no DOM or runtime dependency.
+
+Run `npm test`, `npm run lint` and `npm run test:package` with the declared
+dependencies. The sign/option verification section in
+[the checkpoint report](verification-2026-10-03.md#svg-signoption-contract-checkpoint-2026-10-04)
+records the bounded before/after evidence. Existing historical test counts and
+snapshots above describe their original checkpoints, not the current contract.

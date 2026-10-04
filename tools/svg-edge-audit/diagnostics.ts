@@ -6,6 +6,11 @@ export function tags(svg: string, tag: string): Array<Record<string, string>> {
 }
 
 export type InputClass = 'ordinary_data_or_option' | 'invalid_input' | 'shape_policy_sensitive' | 'sign_or_configuration_policy_sensitive';
+// These existing corpus inputs changed from rendered SVG to explicit rejection.
+// Keep the original corpus and historical classified snapshots unchanged.
+const signOptionContractChanges = new Set([
+  'donut-negative', 'donut-mixed', 'radar-negative', 'radar-mixed', 'radar-zero-max',
+]);
 const rejected = new Set([
   'gauge-negative', 'gauge-mixed', 'gauge-nonfinite', 'gauge-zero-max', 'gauge-negative-max', 'gauge-nonfinite-max',
   'pyramid-negative', 'pyramid-mixed', 'pyramid-nonfinite', 'pyramid-mixed-nonfinite',
@@ -13,6 +18,7 @@ const rejected = new Set([
   'waterfall-nonfinite', 'waterfall-mixed-nonfinite', 'waterfall-short-values', 'waterfall-long-values',
   'donut-nonfinite', 'radar-nonfinite', 'slope-nonfinite', 'slope-mixed-nonfinite',
   'scatter-negative-size', 'scatter-nonfinite-size',
+  ...signOptionContractChanges,
 ]);
 const omitted = new Set([
   'bar-nonfinite', 'line-nonfinite', 'line-nonfinite-x',
@@ -21,14 +27,15 @@ const omitted = new Set([
 const shapes = new Set(['bar-short-values', 'bar-long-values']);
 const flexibleRadar = new Set(['radar-empty-values', 'radar-short-values', 'radar-long-values']);
 const signOrConfiguration = new Set([
-  'donut-negative', 'donut-mixed', 'donut-negative-hole', 'radar-negative', 'radar-mixed', 'radar-zero-max',
+  'donut-negative-hole',
 ]);
-export function policy(id: string): { inputClass: InputClass; expectedRejection: boolean; intentionalOmission: boolean; documentedFlexibility: boolean } {
+export function policy(id: string): { inputClass: InputClass; expectedRejection: boolean; intentionalOmission: boolean; documentedFlexibility: boolean; contractChange: string | null } {
   return {
     inputClass: shapes.has(id) ? 'shape_policy_sensitive' : signOrConfiguration.has(id) ? 'sign_or_configuration_policy_sensitive' : id.includes('nonfinite') || rejected.has(id) ? 'invalid_input' : 'ordinary_data_or_option',
     expectedRejection: rejected.has(id),
     intentionalOmission: omitted.has(id),
     documentedFlexibility: flexibleRadar.has(id),
+    contractChange: signOptionContractChanges.has(id) ? 'svg_sign_option_contract_2026_10_04' : null,
   };
 }
 

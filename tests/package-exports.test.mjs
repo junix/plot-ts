@@ -55,6 +55,29 @@ test('packed SVG entry renders without any installed runtime dependency or DOM',
   assert.match(output, /SVG package smoke passed/)
 })
 
+test('packed SVG entry enforces the non-negative and explicit-option contracts', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure } from 'plot-ts/svg';
+    assert.equal(typeof globalThis.document, 'undefined');
+    const cases = [
+      [() => figure().donut({ items: [{ name: 'A', value: -1 }] }).render(), 'Donut values must be non-negative'],
+      [() => figure().radar({ axes: [{ name: 'A' }], series: [{ values: [-1] }] }).render(), 'Radar values must be non-negative'],
+      [() => figure().radar({ axes: [{ name: 'A', max: 0 }], series: [] }).render(), 'Radar maximum must be finite and positive'],
+      [() => figure().gauge({ value: 1, max: 2, bands: null }).render(), 'Gauge bands must be an array'],
+      [() => figure().gauge({ value: 1, max: 2, bands: [{ from: 0, to: NaN, color: 'red' }] }).render(), 'Gauge band endpoints must be finite'],
+      [() => figure().gauge({ value: 1, max: 2, bands: [{ from: 2, to: 1, color: 'red' }] }).render(), 'Gauge band endpoints must satisfy 0 <= from <= to <= maximum'],
+    ];
+    for (const [render, message] of cases) assert.throws(render, { name: 'RangeError', message });
+    const svg = figure().donut({ items: [{ name: 'A', value: 1 }] })
+      .radar({ axes: [{ name: 'A', max: 2 }], series: [{ values: [1] }] })
+      .gauge({ value: 1, max: 2, bands: [{ from: 0, to: 2, color: 'red' }] }).render();
+    assert.doesNotMatch(svg, /NaN|Infinity/);
+    console.log('SVG option contracts passed');
+  `)
+  assert.match(output, /SVG option contracts passed/)
+})
+
 test('packed declarations resolve the SVG entry in a clean NodeNext consumer', () => {
   writeFileSync(join(consumer, 'svg.ts'), `
     import { figure, SvgFigure, type SvgFigureOptions } from 'plot-ts/svg';

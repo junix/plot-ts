@@ -39,3 +39,17 @@ python3 tools/svg-edge-audit/check-xml.py out/svg-edge-audit-run
 ```
 
 No package scripts or default test globs were changed. The recorded report/JSON under `docs/verification/` describe the exact code commit verified and distinguish supplemental offline checks from an installed-package build or CI result. Raster files are intentionally not committed; the generated SVGs can be inspected or rasterized with an already-available renderer.
+
+
+## Later sign/option contract change
+
+The original 118 configurations and historical reports remain unchanged. The
+2026-10-04 SVG sign/option contract intentionally rejects five previously rendered
+cases: `donut-negative`, `donut-mixed`, `radar-negative`, `radar-mixed`, and
+`radar-zero-max`. Current replay records mark those cases with
+`contractChange: "svg_sign_option_contract_2026_10_04"`; they are expected
+`RangeError` rejections, not newly failing ordinary charts. The bounded replay
+now produces 89 SVGs and 29 rejections. The 89 still-rendered outputs retain their
+pre-contract bytes. The original corpus has no malformed/reversed/out-of-range
+custom band cases; those are covered by `tests/svg-option-contracts.test.ts`.
+See [the explicit contracts](../../docs/svg-data-validation.md).

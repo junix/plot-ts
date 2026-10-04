@@ -556,7 +556,7 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
 
 export interface DonutChart {
   type: 'donut';
-  /** Values must be finite; existing signed-value behavior is retained. */
+  /** Finite non-negative shares; signed parts have no supported donut interpretation. */
   items: Array<{ name: string; value: number }>;
   holeRatio?: number;
   labels?: boolean;
@@ -566,6 +566,9 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
   for (const item of c.items) {
     if (!Number.isFinite(item.value)) {
       throw new RangeError('Donut values must be finite');
+    }
+    if (item.value < 0) {
+      throw new RangeError('Donut values must be non-negative');
     }
   }
 
@@ -639,10 +642,11 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
 
 export interface RadarChart {
   type: 'radar';
+  /** Explicit maxima must be finite and positive; omitted maxima share an inferred scale. */
   axes: Array<{ name: string; max?: number }>;
   series: Array<{
     name?: string;
-    /** Supplied values must be finite; missing entries remain zero. */
+    /** Finite non-negative radii, including extras; missing entries remain zero. */
     values: number[];
   }>;
 }
@@ -653,6 +657,14 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
     if (series.values.some(value => !Number.isFinite(value))) {
       throw new RangeError('Radar values must be finite');
     }
+    if (series.values.some(value => value < 0)) {
+      throw new RangeError('Radar values must be non-negative');
+    }
+  }
+  for (const axis of c.axes) {
+    if (axis.max !== undefined && (!Number.isFinite(axis.max) || axis.max <= 0)) {
+      throw new RangeError('Radar maximum must be finite and positive');
+    }
   }
 
   const cx = width / 2;
@@ -662,9 +674,7 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
   // 所有系列和可见轴共享默认上界，保留单系列形状并使系列之间可比较。
   const inferred = niceCeil(maxOf(c.series.flatMap(s => s.values.slice(0, axisCount))));
   const sharedMax = Number.isFinite(inferred) && inferred > 0 ? inferred : 1;
-  const maxima = c.axes.map(axis =>
-    axis.max !== undefined && Number.isFinite(axis.max) && axis.max > 0 ? axis.max : sharedMax,
-  );
+  const maxima = c.axes.map(axis => axis.max ?? sharedMax);
 
   const polygons: Html[] = [];
   const circles: Html[] = [];
@@ -745,6 +755,7 @@ export interface GaugeChart {
   max?: number;
   title?: string;
   unit?: string;
+  /** Finite endpoints with 0 <= from <= to <= max; gaps, overlaps and zero spans are allowed. */
   bands?: Array<{ from: number; to: number; color: string }>;
 }
 
@@ -755,6 +766,19 @@ export function renderGauge(c: GaugeChart, width: number, height: number): Html 
   const max = c.max ?? (c.value === 0 ? 1 : niceCeil(c.value));
   if (!Number.isFinite(max) || max <= 0) {
     throw new RangeError('Gauge maximum must be finite and positive');
+  }
+  if (c.bands !== undefined) {
+    if (!Array.isArray(c.bands)) {
+      throw new RangeError('Gauge bands must be an array');
+    }
+    for (const band of c.bands) {
+      if (!band || !Number.isFinite(band.from) || !Number.isFinite(band.to)) {
+        throw new RangeError('Gauge band endpoints must be finite');
+      }
+      if (band.from < 0 || band.to < band.from || band.to > max) {
+        throw new RangeError('Gauge band endpoints must satisfy 0 <= from <= to <= maximum');
+      }
+    }
   }
 
   const cx = width / 2;

@@ -90,11 +90,13 @@ test('explicit maxima can be mixed with the shared inferred maximum', () => {
   [105, 210, 105].forEach((expected, ai) => near(radius(points![ai]!), expected));
 });
 
+// Before the explicit option contract, these exact inputs silently fell back to
+// inferred scales. They now fail intentionally; omitted maxima still infer.
 for (const max of [0, -1, NaN, Infinity, -Infinity]) {
-  test(`invalid explicit maximum ${max} falls back to inferred scales`, () => {
-    assert.deepEqual(
-      polygons({ axes: axes.map(axis => ({ ...axis, max })), series: [{ values: [10, 20, 30] }] }),
-      polygons({ axes, series: [{ values: [10, 20, 30] }] }),
+  test(`invalid explicit maximum ${max} rejects instead of silently inferring`, () => {
+    assert.throws(
+      () => polygons({ axes: axes.map(axis => ({ ...axis, max })), series: [{ values: [10, 20, 30] }] }),
+      { name: 'RangeError', message: 'Radar maximum must be finite and positive' },
     );
   });
 }

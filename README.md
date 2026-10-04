@@ -207,6 +207,12 @@ node --import tsx examples/svg-grid-demo.ts out
 `max` 或无法构造有限正数范围时会在渲染时抛出 `RangeError`。负数 `value` 需要
 显式正数 `max`；显式范围外的有限值仍按原有行为将指针限制在两端，数值标签不变。
 
+### SVG 符号与选项契约
+
+SVG 的 donut/radar 仅接受非负数值；显式 radar 最大值必须为正有限数，gauge 自定义区间必须满足
+`0 <= from <= to <= max`。负值和无效选项现在会在 `render()` 时抛出明确错误；这是有意的契约变更。
+详见 [SVG 数据与选项边界](docs/svg-data-validation.md)。
+
 ### SVG 金字塔的零值图层
 
 `pyramid` 的图层值必须是有限非负数；负数和非有限值会在渲染时抛出 `RangeError`。

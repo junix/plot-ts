@@ -120,7 +120,7 @@ test('line retains finite-pair omission and gaps for nonfinite coordinates or va
   assert.equal(paths.length, 3, 'three separate finite segments retain the original gaps');
 });
 
-test('radar partial and empty values retain zero fallback, signed values and explicit scales', () => {
+test('radar partial and empty values retain zero fallback; signed values now reject', () => {
   const render = (values: number[], chartAxes: RadarChart['axes'] = axes) => figure().radar({ axes: chartAxes, series: [{ values }] }).render();
   assert.equal(render([1]), render([1, 0, 0]));
   assert.equal(render([]), render([0, 0, 0]));
@@ -129,22 +129,33 @@ test('radar partial and empty values retain zero fallback, signed values and exp
   assert.equal(render(sparse), render([0, 2, 0]));
   sparse[1] = NaN;
   rejects(() => render(sparse), errors.radar);
-  finite(render([-1, 2, -3]));
-  finite(render([-1, 2, -3], axes.map(axis => ({ ...axis, max: 10 }))));
+  // Former finite-output controls are retained as before/after witnesses: a finite
+  // polygon alone did not establish meaningful signed-axis semantics.
+  rejects(() => render([-1, 2, -3]), 'Radar values must be non-negative');
+  rejects(() => render([-1, 2, -3], axes.map(axis => ({ ...axis, max: 10 }))), 'Radar values must be non-negative');
   assert.match(render([0, 0, 0]), /points="400,250 400,250 400,250"/);
 });
 
-test('ordinary finite, constant, zero and signed data remain accepted in every affected family', () => {
+test('finite controls retain signed charts where supported and reject signed shares or radii', () => {
   for (const values of [[1, 2, 3], [2, 2, 2], [0, 0, 0], [-1, -2, -3], [-1, 2, -3]]) {
     const outputs = [
       figure().heatmap({ data: [values] }).render(),
       figure().waterfall({ categories: names, values }).render(),
-      figure().donut({ items: values.map((value, i) => ({ name: names[i]!, value })) }).render(),
-      figure().radar({ axes, series: [{ values }] }).render(),
       figure().slope({ items: values.map((left, i) => ({ name: names[i]!, left, right: values[(i + 1) % 3]! })) }).render(),
       figure().scatter({ points: values.map((y, x) => ({ x, y })) }).render(),
     ];
     outputs.forEach(finite);
+    // These same negative/mixed inputs used to return finite SVG. The new sign
+    // contract rejects them instead of assigning signed shares or radial axes.
+    const donut = () => figure().donut({ items: values.map((value, i) => ({ name: names[i]!, value })) }).render();
+    const radar = () => figure().radar({ axes, series: [{ values }] }).render();
+    if (values.some(value => value < 0)) {
+      rejects(donut, 'Donut values must be non-negative');
+      rejects(radar, 'Radar values must be non-negative');
+    } else {
+      finite(donut());
+      finite(radar());
+    }
   }
 });
 
@@ -170,14 +181,15 @@ test('empty valid data preserves existing empty representations', () => {
 test('validation does not mutate inputs and errors occur at render time, including composed figures', () => {
   const data = [[1, 2], [3, 4]];
   const values = [2, -1, 3];
-  const items = values.map((value, i) => ({ name: names[i]!, value }));
+  const radii = [2, 1, 3];
+  const items = radii.map((value, i) => ({ name: names[i]!, value }));
   const points = values.map((y, x) => ({ x, y, size: 0 }));
-  const before = structuredClone({ data, values, items, points });
+  const before = structuredClone({ data, values, radii, items, points });
   const fig = figure().heatmap({ data }).waterfall({ categories: names, values }).donut({ items })
-    .radar({ axes, series: [{ values }] }).scatter({ points });
+    .radar({ axes, series: [{ values: radii }] }).scatter({ points });
   finite(fig.render());
   assert.equal(fig.render(), fig.render());
-  assert.deepEqual({ data, values, items, points }, before);
+  assert.deepEqual({ data, values, radii, items, points }, before);
 
   const invalidValues = [1, NaN];
   const invalidFigure = figure().scatter({ points }).waterfall({ categories: ['A', 'B'], values: invalidValues });

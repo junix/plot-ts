@@ -263,3 +263,83 @@ no dependency is downloaded by this gate.
 - This checkpoint did not repeat the earlier SVG corpus/raster/visual sweep or
   perform a dependency vulnerability audit. Earlier renderer-scope limits and
   bounded numeric/data contracts remain unchanged
+
+## SVG sign/option contract checkpoint, 2026-10-04
+
+This later, deliberately behavior-changing contract is based on
+[29b54ade80ce](https://github.com/junix/plot-ts/commit/29b54ade80ce0585b36ad43ee1217f479ebe5db7).
+It closes the earlier negative donut/radar, invalid explicit radar maximum, and
+custom gauge-band endpoint questions. It supersedes the earlier acceptance or
+fallback statements for those inputs; historical checkpoint results above remain
+unchanged. It does not introduce a global domain/layout validator.
+
+### Supported and rejected inputs
+
+- Donut values are finite non-negative shares; radar values are finite
+  non-negative radii. Both accept zero and negative-zero. Finite negatives now
+  throw rather than producing unsupported signed sectors/radii. Radar validates
+  supplied extras too, retaining sparse/trailing zero fallback for missing values
+- Every supplied radar axis maximum must be finite and positive. Invalid explicit
+  maxima now throw instead of silently falling back. Omitted maxima retain the
+  shared inferred scale; valid explicit maxima retain upper-radius clipping
+- Custom gauge bands require finite numeric endpoints with
+  `0 <= from <= to <= maximum`. Missing/nonfinite endpoints, reversed spans and
+  out-of-range spans throw. A non-array `bands` value also throws. Bounds use the
+  resolved maximum, including the zero-value `0..1` fallback
+- Zero-length bands, gaps, overlaps and out-of-order band lists remain supported
+  and keep their input order. Empty lists draw no bands; omitted bands retain the
+  defaults. Gauge values and pointer clamping keep their existing contract
+
+These are intentional contract changes, not a backward-compatible cleanup.
+The renderer neither interprets signed shares/radial axes nor normalizes bands.
+The [full contracts and error messages](svg-data-validation.md) describe the
+boundary, including runtime malformed inputs. Prior tests that accepted signed
+values and invalid maxima remain as annotated before/after witnesses.
+
+### Native verification
+
+All 67 baseline files were verified against the pinned Git tree. Using the
+already-installed declared dependencies, with no new dependency, lifecycle
+script, browser, credential or CI access:
+
+| Check | Result |
+| --- | --- |
+| Baseline `npm test` | 547 passed, 0 failed |
+| New 54-test contract suite against the unchanged baseline | 8 passed, 46 failed as expected; failures are retained as before/after evidence |
+| Updated `npm test` | 601 passed, 0 failed, 0 skipped: previous 547 plus 54 contract tests |
+| `npm run lint` | Exit 0 with TypeScript 7.0.2 |
+| Strict source/test/example/audit-tool TypeScript check | Exit 0, including `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` |
+| `npm run build` and `npm run test:package` | Vite/browser/SVG/declaration builds pass; all 5 actual packed-consumer checks pass |
+| Original portable witness suite | 13 passed, 0 failed |
+| Additional valid-output controls | 83 configurations at four sizes: all 332 SVG byte strings match the baseline |
+| Independent XML parsing | All 332 additional controls and 89 retained corpus SVGs parse successfully |
+
+The packed SVG test exercises the public sign/max/band RangeErrors before any
+DOM or runtime dependency is present. No browser/ECharts runtime, native canvas,
+CI or new raster/visual acceptance is claimed by this checkpoint. Unchanged SVG
+bytes establish preservation for the checked controls, not universal numeric or
+layout correctness.
+
+### Original corpus: five explicit outcome changes
+
+All 118 fixture configurations, case order and the historical report/JSON remain
+unchanged. The current replay records explicitly mark these five intentional
+changes with `contractChange: "svg_sign_option_contract_2026_10_04"`:
+
+| Existing case | Before | Current contract |
+| --- | --- | --- |
+| `donut-negative` | Rendered SVG | `RangeError: Donut values must be non-negative` |
+| `donut-mixed` | Rendered SVG | `RangeError: Donut values must be non-negative` |
+| `radar-negative` | Rendered SVG | `RangeError: Radar values must be non-negative` |
+| `radar-mixed` | Rendered SVG | `RangeError: Radar values must be non-negative` |
+| `radar-zero-max` | Rendered SVG via fallback | `RangeError: Radar maximum must be finite and positive` |
+
+The replay now returns 89 SVGs and 29 intentional rejections, with exit 0 and no
+flagged numeric/missing-fill or semantic defects. All 89 retained SVGs are
+byte-identical to the baseline; the previous 24 rejection errors are unchanged.
+Malformed/reversed/out-of-range custom bands are additional native test cases,
+not additions to or replacements for the original corpus.
+
+The remaining limits are explicit: finite arithmetic overflow, donut hole-ratio
+policy, dimensions/layout/long labels, CSS/SVG paint validation, unrelated option
+schemas, and real browser/CI execution are outside this bounded change.

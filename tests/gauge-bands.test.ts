@@ -43,8 +43,16 @@ test('semicircle classification is stable across maxima and shifted band starts'
       const boundary = render({ value: max / 2, max, bands: [{ from, to, color: '#f00' }] });
       assert.deepEqual(arcFlags(paths(boundary)[0]!), [[0, 1], [0, 0]], `max=${max}, from=${from}`);
       for (const [factor, flag] of [[1 - 1e-8, 0], [1 + 1e-8, 1]] as const) {
-        const output = render({ value: max / 2, max, bands: [{ from, to: from + (to - from) * factor, color: '#f00' }] });
-        assert.deepEqual(arcFlags(paths(output)[0]!), [[flag, 1], [flag, 0]]);
+        const endpoint = from + (to - from) * factor;
+        // The previous arc-only witness also accepted an endpoint just past max.
+        // Keep that witness as an intentional rejection under the bounded-band contract.
+        if (endpoint > max) {
+          assert.throws(() => render({ value: max / 2, max, bands: [{ from, to: endpoint, color: '#f00' }] }),
+            { name: 'RangeError', message: 'Gauge band endpoints must satisfy 0 <= from <= to <= maximum' });
+        } else {
+          const output = render({ value: max / 2, max, bands: [{ from, to: endpoint, color: '#f00' }] });
+          assert.deepEqual(arcFlags(paths(output)[0]!), [[flag, 1], [flag, 0]]);
+        }
       }
     }
   }
