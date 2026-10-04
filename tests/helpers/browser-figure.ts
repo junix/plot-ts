@@ -19,6 +19,12 @@ export class FakeChart {
   resizeCalls = 0
   disposeCalls = 0
   disposed = false
+  exportCalls: any[] = []
+
+  getDataURL(options: any): string {
+    this.exportCalls.push(snapshot(options))
+    return 'data:image/png;base64,dGVzdA=='
+  }
 
   setOption(option: any, options?: any): void {
     if (this.disposed) throw new Error('setOption called after disposal')
@@ -40,6 +46,7 @@ export class FakeChart {
 
 export function createBrowserHarness(sourceRoot: string = process.cwd()) {
   const charts: FakeChart[] = []
+  const initThemes: any[] = []
   const resizeListeners = new Set<() => void>()
   const window = {
     resizeListeners,
@@ -82,7 +89,8 @@ export function createBrowserHarness(sourceRoot: string = process.cwd()) {
   }
 
   const echarts = {
-    init(): FakeChart {
+    init(_dom: unknown, theme: unknown): FakeChart {
+      initThemes.push(snapshot(theme))
       const chart = new FakeChart()
       charts.push(chart)
       return chart
@@ -109,11 +117,19 @@ export function createBrowserHarness(sourceRoot: string = process.cwd()) {
   }
   const rejectImport = (specifier: string): never => { throw new Error(`Unexpected import: ${specifier}`) }
   const palette = evaluate('src/style/palette.ts', rejectImport)
+  function canonicalModule(): any {
+    const generated = evaluate('src/style/canonical-generated.ts', rejectImport)
+    return evaluate('src/style/canonical.ts', specifier => {
+      if (specifier === './canonical-generated.js') return generated
+      return rejectImport(specifier)
+    })
+  }
   const plotter = evaluate('src/core/plotter.ts', (specifier: string) => {
     if (specifier === 'echarts') return echarts
     if (specifier === '../style/palette.js') return palette
+    if (specifier === '../style/canonical.js') return canonicalModule()
     return rejectImport(specifier)
   }) as { Figure: typeof Figure }
 
-  return { Figure: plotter.Figure, charts, window, timers }
+  return { Figure: plotter.Figure, charts, initThemes, window, timers }
 }

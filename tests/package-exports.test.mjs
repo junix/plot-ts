@@ -55,6 +55,25 @@ test('packed SVG entry renders without any installed runtime dependency or DOM',
   assert.match(output, /SVG package smoke passed/)
 })
 
+test('packed canonical SVG registry and all variants work without runtime dependencies', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure, CANONICAL_THEME_NAMES, getCanonicalTheme } from 'plot-ts/svg';
+    assert.equal(CANONICAL_THEME_NAMES.length, 14);
+    assert.equal(typeof globalThis.document, 'undefined');
+    for (const name of CANONICAL_THEME_NAMES) {
+      const theme = getCanonicalTheme(name);
+      const svg = figure({ theme: name, title: name }).bar({ categories: ['A'], series: [{ values: [2] }] }).render();
+      assert.ok(svg.includes('fill="' + theme.tokens['--s1'] + '"'));
+      assert.ok(svg.includes('fill="' + theme.tokens['--paper'] + '"'));
+      assert.ok(svg.includes('fill="' + theme.tokens['--ink'] + '"'));
+    }
+    assert.throws(() => getCanonicalTheme('unknown'), RangeError);
+    console.log('Packed canonical themes passed');
+  `)
+  assert.match(output, /Packed canonical themes passed/)
+})
+
 test('packed SVG entry enforces the non-negative and explicit-option contracts', () => {
   const output = run(`
     import assert from 'node:assert/strict';
@@ -180,7 +199,9 @@ test('packed SVG entry enforces panel geometry for all ten chart families', () =
 test('packed declarations resolve the SVG entry in a clean NodeNext consumer', () => {
   writeFileSync(join(consumer, 'svg.ts'), `
     import { figure, SvgFigure, type SvgFigureOptions } from 'plot-ts/svg';
-    const options: SvgFigureOptions = { width: 400, height: 300 };
+    const options: SvgFigureOptions = { width: 400, height: 300, theme: 'sage-dark' };
+    // @ts-expect-error SVG accepts exact canonical names only.
+    figure({ theme: 'not-canonical' });
     const chart: SvgFigure = figure(options);
     const output: string = chart.bar({ categories: ['A'], series: [{ values: [2] }] }).render();
     // @ts-expect-error SVG entry does not accept the browser's container/config signature.
@@ -201,9 +222,11 @@ test('root export preserves browser API and SVG namespace with its declared ECha
   symlinkSync(dirname(require.resolve('echarts/package.json')), join(consumer, 'node_modules', 'echarts'), 'junction')
   const output = run(`
     import assert from 'node:assert/strict';
-    import { Figure, figure, svg } from 'plot-ts';
+    import { Figure, figure, svg, CANONICAL_THEME_NAMES, getCanonicalTheme } from 'plot-ts';
     import { createHash } from 'node:crypto';
     import { figure as svgFigure, SvgFigure } from 'plot-ts/svg';
+    assert.equal(CANONICAL_THEME_NAMES.length, 14);
+    assert.deepEqual(getCanonicalTheme('sage-dark'), svg.getCanonicalTheme('sage-dark'));
     assert.equal(typeof Figure, 'function');
     assert.equal(typeof figure, 'function');
     assert.notEqual(figure, svgFigure);

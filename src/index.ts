@@ -10,6 +10,8 @@ export * as svg from './svg/index.js'
 // ========== 样式与配色 ==========
 export { COLORS, THEMES, getTheme, setTheme, withTheme } from './style/palette.js'
 
+export { CANONICAL_THEME_NAMES, getCanonicalTheme, type CanonicalThemeName, type CanonicalTheme, type CanonicalTokenName } from './style/canonical.js'
+
 // ========== 设计令牌 (专业风格) ==========
 export {
   palette,

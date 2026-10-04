@@ -3,6 +3,7 @@
  * 借鉴 ppt-gen 的 context.js 模式，把重复逻辑抽离到这里。
  */
 
+import type { CanonicalTheme } from '../style/canonical.js';
 import type { Html } from '../util/html.js';
 import { h, join, text, n } from '../util/html.js';
 import { INK, INK_ALPHA, NEUTRAL, ACCENTS, type AccentName } from '../style/tokens.js';
@@ -34,7 +35,8 @@ export interface SeriesTone {
  * 这是专业图表的关键：系列数增加时，**不加新色**，而是降现有颜色的浓度。
  * 专业图绝不会出现 5、6、7 种色相。
  */
-export function seriesTone(index: number, accentName: AccentName = 'cyan'): SeriesTone {
+export function seriesTone(index: number, accentName: AccentName = 'cyan', theme?: CanonicalTheme): SeriesTone {
+  if (theme) return { color: theme.series[index % theme.series.length]!, opacity: 1 };
   switch (index) {
     case 0: return { color: INK, opacity: 1 };
     case 1: return { color: ACCENTS[accentName], opacity: 1 };
@@ -93,7 +95,7 @@ export function svg(width: number, height: number, children: Html, attrs: Record
 }
 
 /** 绘制水平网格线。 */
-export function gridLines(p: Plot, min: number, max: number, count = 4): Html {
+export function gridLines(p: Plot, min: number, max: number, count = 4, theme?: CanonicalTheme): Html {
   const step = (max - min) / count;
   const lines: Html[] = [];
 
@@ -105,8 +107,8 @@ export function gridLines(p: Plot, min: number, max: number, count = 4): Html {
       x2: n(p.x0 + p.w),
       y1: n(y),
       y2: n(y),
-      stroke: INK,
-      'stroke-opacity': INK_ALPHA.grid,
+      stroke: theme?.tokens['--grid'] ?? INK,
+      'stroke-opacity': theme ? 1 : INK_ALPHA.grid,
       'stroke-width': 1,
     }));
   }
@@ -134,7 +136,7 @@ export function yAxisLabels(p: Plot, min: number, max: number, count = 4): Html 
 }
 
 /** 绘制分类柱图底部的类别标签。 */
-export function categoryLabels(p: Plot, categories: string[]): Html {
+export function categoryLabels(p: Plot, categories: string[], theme?: CanonicalTheme): Html {
   const band = p.w / Math.max(1, categories.length);
   const labels: Html[] = [];
 
@@ -144,7 +146,7 @@ export function categoryLabels(p: Plot, categories: string[]): Html {
       cx,
       p.y0 + p.h + 18,
       cat,
-      { size: 10, anchor: 'middle', fill: `rgba(5, 28, 44, ${INK_ALPHA.faint})` }
+      { size: 10, anchor: 'middle', fill: theme?.tokens['--muted'] ?? `rgba(5, 28, 44, ${INK_ALPHA.faint})` }
     ));
   });
 
@@ -152,15 +154,15 @@ export function categoryLabels(p: Plot, categories: string[]): Html {
 }
 
 /** 绘制 Y 轴基线（零值线）。 */
-export function baseline(p: Plot, min: number, max: number): Html {
+export function baseline(p: Plot, min: number, max: number, theme?: CanonicalTheme): Html {
   const y = yOf(p, Math.max(min, 0), min, max);
   return h('line', {
     x1: n(p.x0),
     x2: n(p.x0 + p.w),
     y1: n(y),
     y2: n(y),
-    stroke: INK,
-    'stroke-opacity': INK_ALPHA.rule,
+    stroke: theme?.tokens['--line'] ?? INK,
+    'stroke-opacity': theme ? 1 : INK_ALPHA.rule,
     'stroke-width': 1,
   });
 }

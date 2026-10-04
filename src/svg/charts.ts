@@ -8,6 +8,7 @@
  * 3. 动画通过 CSS class 标记，在浏览器端自动播放
  */
 
+import { canonicalMarkText, type CanonicalTheme } from '../style/canonical.js';
 import type { Html } from '../util/html.js';
 import { COLORS } from '../style/palette.js';
 import { h, join, text, n } from '../util/html.js';
@@ -45,7 +46,7 @@ export interface ColumnChart {
   precision?: number;
 }
 
-export function renderColumn(c: ColumnChart, width: number, height: number): Html {
+export function renderColumn(c: ColumnChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   const stacked = !!c.stacked;
   const showLabels = c.labels !== false;
@@ -114,6 +115,8 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
 
   const bars: Html[] = [];
   const labels: Html[] = [];
+  const labelRenderers: Array<() => Html> = [];
+  const barSurfaces: Array<{ x: number; y: number; width: number; height: number; color: string }> = [];
 
   c.categories.forEach((_, ci) => {
     // Keep series order top-to-bottom on each side of zero. Positive stacks
@@ -124,7 +127,7 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
     c.series.forEach((s, si) => {
       const v = s.values[ci];
       if (v === null || v === undefined || !Number.isFinite(v)) return;
-      const { color, opacity } = seriesTone(si);
+      const { color, opacity } = seriesTone(si, undefined, theme);
 
       let x: number;
       let yTop: number;
@@ -145,6 +148,7 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
         barH = Math.abs(yOf(finalPlot, v, min, max) - zeroY);
       }
 
+      barSurfaces.push({ x, y: yTop, width: barW, height: Math.max(0.5, barH), color });
       bars.push(h('rect', {
         class: 'plt-grow',
         style: `--i:${ci * c.series.length + si}`,
@@ -156,26 +160,30 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
         opacity: opacity === 1 ? undefined : opacity,
       }));
 
-      // 数据标签：堆叠时在段内（白字），分组时在柱顶上方
+      // Labels keep their legacy position above each segment. For canonical
+      // stacks this can be paper or another segment, not the current mark.
+      // Defer contrast choice until all positive/negative rectangles are known.
       if (showLabels && barH >= 13) {
-        labels.push(fadeIn(
+        labelRenderers.push(() => fadeIn(
           ci * c.series.length + si,
           text(x + barW / 2, yTop - 5, fmt(v, c.format, c.precision), {
             size: 10,
             weight: 700,
             anchor: 'middle',
-            fill: stacked ? '#fff' : '#051C2C',
+            fill: stacked ? (theme ? stackedLabelText(x + barW / 2, yTop - 10, barSurfaces, theme) : '#fff') : (theme?.tokens['--ink'] ?? '#051C2C'),
           })
         ));
       }
     });
   });
 
+  labels.push(...labelRenderers.map(render => render()));
+
   return svg(width, height, join(
-    showAxis ? gridLines(finalPlot, min, max) : '',
-    baseline(finalPlot, min, max),
+    showAxis ? gridLines(finalPlot, min, max, 4, theme) : '',
+    baseline(finalPlot, min, max, theme),
     ...bars,
-    categoryLabels(finalPlot, c.categories),
+    categoryLabels(finalPlot, c.categories, theme),
     ...labels,
   ));
 }
@@ -199,7 +207,7 @@ export interface LineChart {
   max?: number;
 }
 
-export function renderLine(c: LineChart, width: number, height: number): Html {
+export function renderLine(c: LineChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
   const p = drawablePlot(c.type, width, height, {
@@ -238,7 +246,7 @@ export function renderLine(c: LineChart, width: number, height: number): Html {
   const areas: Html[] = [];
 
   c.series.forEach((s, si) => {
-    const { color } = seriesTone(si);
+    const { color } = seriesTone(si, undefined, theme);
     const segments: Array<Array<[number, number]>> = [];
     let segment: Array<[number, number]> = [];
 
@@ -284,8 +292,8 @@ export function renderLine(c: LineChart, width: number, height: number): Html {
   });
 
   return svg(width, height, join(
-    showAxis ? gridLines(p, min, max) : '',
-    baseline(p, min, max),
+    showAxis ? gridLines(p, min, max, 4, theme) : '',
+    baseline(p, min, max, theme),
     areas.join(''),
     paths.join(''),
   ));
@@ -304,7 +312,7 @@ export interface ScatterChart {
   xAxis?: boolean;
 }
 
-export function renderScatter(c: ScatterChart, width: number, height: number): Html {
+export function renderScatter(c: ScatterChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
   const p = drawablePlot(c.type, width, height, {
@@ -335,7 +343,7 @@ export function renderScatter(c: ScatterChart, width: number, height: number): H
   assertFiniteDomain(c.type, 'x', xMin, xMax);
   assertFiniteDomain(c.type, 'y', yMin, yMax);
 
-  const { color } = seriesTone(0);
+  const { color } = seriesTone(0, undefined, theme);
   const circles: Html[] = [];
 
   c.points.forEach((pt, i) => {
@@ -356,7 +364,7 @@ export function renderScatter(c: ScatterChart, width: number, height: number): H
   });
 
   return svg(width, height, join(
-    showAxis ? gridLines(p, yMin, yMax) : '',
+    showAxis ? gridLines(p, yMin, yMax, 4, theme) : '',
     ...circles,
   ));
 }
@@ -394,8 +402,8 @@ function heatmapPalette(colormap: HeatmapChart['colormap']): readonly string[] {
 }
 
 /** Fit only overflowing labels, retaining the legacy text bytes when they fit. */
-function heatmapLabel(x: number, y: number, label: string, budget: number, anchor: 'middle' | 'end'): Html {
-  const style = { size: 10, anchor, fill: 'rgba(5, 28, 44, 0.58)' };
+function heatmapLabel(x: number, y: number, label: string, budget: number, anchor: 'middle' | 'end', theme?: CanonicalTheme): Html {
+  const style = { size: 10, anchor, fill: theme?.tokens['--muted'] ?? 'rgba(5, 28, 44, 0.58)' };
   if (estimateTextWidth(label, 10) <= budget) return text(x, y, label, style);
 
   // Segment by grapheme so an ellipsis never splits surrogate pairs, combining
@@ -421,7 +429,7 @@ function heatmapLabel(x: number, y: number, label: string, budget: number, ancho
   });
 }
 
-export function renderHeatmap(c: HeatmapChart, width: number, height: number): Html {
+export function renderHeatmap(c: HeatmapChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   const palette = heatmapPalette(c.colormap);
   const rows = c.data.length;
@@ -474,7 +482,7 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
         width: n(cellW),
         height: n(cellH),
         fill: palette[colorIdx],
-        stroke: '#fff',
+        stroke: theme?.tokens['--paper'] ?? '#fff',
         'stroke-width': 1,
       }));
     }
@@ -487,7 +495,7 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
         p.x0 - 4,
         p.y0 + r * cellH + cellH / 2 + 4,
         label,
-        Math.max(0, labelW - 8), 'end',
+        Math.max(0, labelW - 8), 'end', theme,
       ));
     });
   }
@@ -498,7 +506,7 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
       p.x0 + (col + 0.5) * cellW,
       p.y0 + p.h + 16,
       label,
-      Math.max(0, cellW - 8), 'middle',
+      Math.max(0, cellW - 8), 'middle', theme,
     ));
   });
 
@@ -518,7 +526,7 @@ export interface WaterfallChart {
   format?: 'plain' | 'percent' | 'compact';
 }
 
-export function renderWaterfall(c: WaterfallChart, width: number, height: number): Html {
+export function renderWaterfall(c: WaterfallChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   if (c.categories.length !== c.values.length) {
     throw new RangeError('Waterfall categories and values must have equal lengths');
@@ -559,7 +567,7 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
     const barY = yOf(p, Math.max(start, start + v), min, max);
     const barH = Math.abs(yOf(p, start, min, max) - yOf(p, start + v, min, max));
 
-    const color = v >= 0 ? '#26A69A' : '#EF5350'; // 青增红减
+    const color = v >= 0 ? (theme?.tokens['--pos'] ?? '#26A69A') : (theme?.tokens['--neg'] ?? '#EF5350'); // 青增红减
     const x = p.x0 + band * ci + (band - barW) / 2;
 
     bars.push(h('rect', {
@@ -576,7 +584,7 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
         x + barW / 2,
         barY - 6,
         fmt(v, c.format),
-        { size: 10, weight: 700, anchor: 'middle', fill: '#051C2C' }
+        { size: 10, weight: 700, anchor: 'middle', fill: theme?.tokens['--ink'] ?? '#051C2C' }
       ));
     }
 
@@ -585,7 +593,7 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
       x + barW / 2,
       p.y0 + p.h + 18,
       cat,
-      { size: 10, anchor: 'middle', fill: 'rgba(5, 28, 44, 0.58)' }
+      { size: 10, anchor: 'middle', fill: theme?.tokens['--muted'] ?? 'rgba(5, 28, 44, 0.58)' }
     ));
   });
 
@@ -595,7 +603,7 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
     x2: n(p.x0 + p.w),
     y1: n(zeroY),
     y2: n(zeroY),
-    stroke: '#051C2C',
+    stroke: theme?.tokens['--line'] ?? '#051C2C',
     'stroke-opacity': 0.16,
     'stroke-width': 1,
   });
@@ -615,7 +623,7 @@ export interface DonutChart {
   labels?: boolean;
 }
 
-export function renderDonut(c: DonutChart, width: number, height: number): Html {
+export function renderDonut(c: DonutChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   for (const item of c.items) {
     if (!Number.isFinite(item.value)) {
@@ -667,11 +675,11 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
       ? `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 0,1 ${n(2 * cx - x1)},${n(2 * cy - y1)} A${n(r)},${n(r)} 0 0,1 ${n(x1)},${n(y1)} Z M${n(x4)},${n(y4)} A${n(holeR)},${n(holeR)} 0 0,0 ${n(2 * cx - x4)},${n(2 * cy - y4)} A${n(holeR)},${n(holeR)} 0 0,0 ${n(x4)},${n(y4)} Z`
       : `M${n(x1)},${n(y1)} A${n(r)},${n(r)} 0 ${largeArc},1 ${n(x2)},${n(y2)} L${n(x3)},${n(y3)} A${n(holeR)},${n(holeR)} 0 ${largeArc},0 ${n(x4)},${n(y4)} Z`;
 
-    const { color } = seriesTone(i);
+    const { color } = seriesTone(i, undefined, theme);
     slices.push(h('path', {
       d: path,
       fill: color,
-      stroke: '#fff',
+      stroke: theme?.tokens['--paper'] ?? '#fff',
       'stroke-width': 2,
     }));
 
@@ -685,7 +693,7 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
         size: 11,
         weight: 600,
         anchor: 'middle',
-        fill: '#fff',
+        fill: theme ? canonicalMarkText(color) : '#fff',
       }));
     }
 
@@ -710,7 +718,7 @@ export interface RadarChart {
   }>;
 }
 
-export function renderRadar(c: RadarChart, width: number, height: number): Html {
+export function renderRadar(c: RadarChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   for (const series of c.series) {
     // Sparse or trailing missing entries retain the existing zero fallback.
@@ -757,7 +765,7 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
       cy: n(cy),
       r: n(gridR),
       fill: 'none',
-      stroke: '#E6E8EA',
+      stroke: theme?.tokens['--grid'] ?? '#E6E8EA',
       'stroke-width': 1,
     }));
   }
@@ -772,7 +780,7 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
       y1: n(cy),
       x2: n(endX),
       y2: n(endY),
-      stroke: '#E6E8EA',
+      stroke: theme?.tokens['--grid'] ?? '#E6E8EA',
       'stroke-width': 1,
     }));
 
@@ -783,7 +791,7 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
     labels.push(text(labelX, labelY + 4, axis.name, {
       size: 11,
       anchor: 'middle',
-      fill: '#051C2C',
+      fill: theme?.tokens['--ink'] ?? '#051C2C',
     }));
   });
 
@@ -798,7 +806,7 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
       points.push(`${n(px)},${n(py)}`);
     });
 
-    const { color, opacity } = seriesTone(si);
+    const { color, opacity } = seriesTone(si, undefined, theme);
     polygons.push(h('polygon', {
       points: points.join(' '),
       fill: color,
@@ -827,7 +835,7 @@ export interface GaugeChart {
   bands?: Array<{ from: number; to: number; color: string }>;
 }
 
-export function renderGauge(c: GaugeChart, width: number, height: number): Html {
+export function renderGauge(c: GaugeChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   if (!Number.isFinite(c.value)) {
     throw new RangeError('Gauge value must be finite');
@@ -862,9 +870,9 @@ export function renderGauge(c: GaugeChart, width: number, height: number): Html 
 
   const bands: Html[] = [];
   const arcs = c.bands ?? [
-    { from: 0, to: max * 0.6, color: '#4CAF50' },
-    { from: max * 0.6, to: max * 0.85, color: '#FFC107' },
-    { from: max * 0.85, to: max, color: '#F44336' },
+    { from: 0, to: max * 0.6, color: theme?.tokens['--pos'] ?? '#4CAF50' },
+    { from: max * 0.6, to: max * 0.85, color: theme?.tokens['--warn'] ?? '#FFC107' },
+    { from: max * 0.85, to: max, color: theme?.tokens['--neg'] ?? '#F44336' },
   ];
 
   arcs.forEach(band => {
@@ -898,17 +906,17 @@ export function renderGauge(c: GaugeChart, width: number, height: number): Html 
 
   const pointer = h('polygon', {
     points: `${n(cx)},${n(cy - 8)} ${n(cx - 4)},${n(cy + 5)} ${n(px)},${n(py)} ${n(cx + 4)},${n(cy + 5)}`,
-    fill: '#051C2C',
+    fill: theme?.tokens['--ink'] ?? '#051C2C',
   });
 
-  const center = h('circle', { cx: n(cx), cy: n(cy), r: 10, fill: '#051C2C' });
+  const center = h('circle', { cx: n(cx), cy: n(cy), r: 10, fill: theme?.tokens['--ink'] ?? '#051C2C' });
 
   // 数值显示
   const valueText = text(cx, cy - r - 20, fmt(c.value) + (c.unit || ''), {
     size: 24,
     weight: 700,
     anchor: 'middle',
-    fill: '#051C2C',
+    fill: theme?.tokens['--ink'] ?? '#051C2C',
   });
 
   return svg(width, height, join(...bands, pointer, center, valueText));
@@ -927,7 +935,7 @@ export interface SlopeChart {
   max?: number;
 }
 
-export function renderSlope(c: SlopeChart, width: number, height: number): Html {
+export function renderSlope(c: SlopeChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   for (const item of c.items) {
     if (!Number.isFinite(item.left) || !Number.isFinite(item.right)) {
@@ -950,7 +958,7 @@ export function renderSlope(c: SlopeChart, width: number, height: number): Html 
   const labels: Html[] = [];
 
   c.items.forEach((item, i) => {
-    const { color } = seriesTone(i);
+    const { color } = seriesTone(i, undefined, theme);
     const yLeft = yOf(p, item.left, min, max);
     const yRight = yOf(p, item.right, min, max);
 
@@ -972,7 +980,7 @@ export function renderSlope(c: SlopeChart, width: number, height: number): Html 
     labels.push(text(leftX - 12, yLeft + 4, item.name, {
       size: 11,
       anchor: 'end',
-      fill: '#051C2C',
+      fill: theme?.tokens['--ink'] ?? '#051C2C',
     }));
     labels.push(text(rightX + 12, yRight + 4, fmt(item.right), {
       size: 11,
@@ -988,13 +996,13 @@ export function renderSlope(c: SlopeChart, width: number, height: number): Html 
       size: 12,
       weight: 700,
       anchor: 'middle',
-      fill: '#051C2C',
+      fill: theme?.tokens['--ink'] ?? '#051C2C',
     }));
     labels.push(text(rightX, p.y0 - 15, c.rightTitle ?? '', {
       size: 12,
       weight: 700,
       anchor: 'middle',
-      fill: '#051C2C',
+      fill: theme?.tokens['--ink'] ?? '#051C2C',
     }));
   }
 
@@ -1011,7 +1019,7 @@ export interface PyramidChart {
   layers: Array<{ name: string; value: number }>;
 }
 
-export function renderPyramid(c: PyramidChart, width: number, height: number): Html {
+export function renderPyramid(c: PyramidChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   if (c.layers.some(layer => !Number.isFinite(layer.value) || layer.value < 0)) {
     throw new RangeError('Pyramid values must be finite and non-negative');
@@ -1034,7 +1042,7 @@ export function renderPyramid(c: PyramidChart, width: number, height: number): H
     const x = p.x0 + (p.w - layerW) / 2;
     const y = p.y0 + i * layerH;
 
-    const { color } = seriesTone(i);
+    const { color } = seriesTone(i, undefined, theme);
 
     layers.push(h('rect', {
       x: n(x),
@@ -1048,7 +1056,7 @@ export function renderPyramid(c: PyramidChart, width: number, height: number): H
     labels.push(text(x - 8, y + layerH / 2 + 4, layer.name, {
       size: 11,
       anchor: 'end',
-      fill: '#051C2C',
+      fill: theme?.tokens['--ink'] ?? '#051C2C',
     }));
 
     // 右侧数值
@@ -1066,6 +1074,17 @@ export function renderPyramid(c: PyramidChart, width: number, height: number): H
 // ───────────────────────────────────────────────────────────────
 //  辅助函数
 // ───────────────────────────────────────────────────────────────
+
+/** Sample the rendered surface under the existing above-segment label center. */
+function stackedLabelText(x: number, y: number, surfaces: Array<{ x: number; y: number; width: number; height: number; color: string }>, theme: CanonicalTheme): string {
+  for (let i = surfaces.length - 1; i >= 0; i--) {
+    const surface = surfaces[i]!;
+    if (x >= surface.x && x <= surface.x + surface.width && y >= surface.y && y <= surface.y + surface.height) {
+      return canonicalMarkText(surface.color);
+    }
+  }
+  return canonicalMarkText(theme.tokens['--paper']);
+}
 
 /** Validate direct renderers too, before a chart can emit an invalid viewport. */
 function assertPanelDimensions(chart: string, width: number, height: number): void {

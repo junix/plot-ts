@@ -11,6 +11,8 @@
  * - ECharts 引擎：✅ 交互丰富  ✅ 动画流畅  ✅ 大数据性能好
  */
 
+import { getCanonicalTheme, type CanonicalTheme, type CanonicalThemeName } from '../style/canonical.js';
+export { CANONICAL_THEME_NAMES, getCanonicalTheme, type CanonicalThemeName, type CanonicalTheme, type CanonicalTokenName } from '../style/canonical.js';
 import type { Html } from '../util/html.js';
 import { esc, h, join } from '../util/html.js';
 import { generateStyles, palette, type AccentName } from '../style/tokens.js';
@@ -58,6 +60,8 @@ export interface SvgFigureOptions {
   height?: number;
   title?: string;
   accent?: AccentName;
+  /** Opt in to a pinned canonical theme; omitted keeps the exact legacy output. */
+  theme?: CanonicalThemeName;
   animated?: boolean;
   /** Independent panels per row; defaults to a near-square grid. */
   columns?: number;
@@ -85,6 +89,7 @@ export class SvgFigure {
   private height: number;
   private title: string | undefined;
   private accent: AccentName;
+  private theme: CanonicalTheme | undefined;
   private columns: number | undefined;
   private gap: number;
   private charts: Chart[] = [];
@@ -94,6 +99,7 @@ export class SvgFigure {
     this.height = options.height ?? 500;
     this.title = options.title;
     this.accent = options.accent ?? 'cyan';
+    this.theme = options.theme === undefined ? undefined : getCanonicalTheme(options.theme);
     this.columns = options.columns;
     this.gap = options.gap ?? 16;
     if (!Number.isFinite(this.width) || this.width <= 0 ||
@@ -182,7 +188,7 @@ export class SvgFigure {
     // Keep the single-chart markup unchanged. Multiple charts get independent
     // viewports and domains, in the order they were added.
     const chartSvg = this.charts.length === 1
-      ? renderChart(chart, this.width, chartH)
+      ? renderChart(chart, this.width, chartH, this.theme)
       : this.renderPanels(chartH);
 
     const titleElem = this.title
@@ -192,7 +198,7 @@ export class SvgFigure {
         'text-anchor': 'middle',
         'font-size': 18,
         'font-weight': 700,
-        fill: '#051C2C',
+        fill: this.theme?.tokens['--ink'] ?? '#051C2C',
       }, esc(this.title))
       : '';
 
@@ -221,21 +227,25 @@ export class SvgFigure {
         'data-panel-index': index,
         'data-chart-type': chart.type,
         transform: `translate(${x}, ${y})`,
-      }, renderChart(chart, panelWidth, panelHeight));
+      }, renderChart(chart, panelWidth, panelHeight, this.theme));
     }));
   }
 
   /** 渲染为完整的 HTML 页面（带样式和动画） */
   renderHtml(): string {
+    const styles = generateStyles(this.theme ? { ink: this.theme.tokens['--ink'], accent: this.theme.tokens['--accent'], paper: this.theme.tokens['--paper'], neutral: this.theme.tokens['--grid'] } : palette(this.accent));
+    // generateStyles returns a complete <style> element. Canonical HTML already
+    // has a stylesheet, so insert only its rules; preserve legacy HTML bytes.
+    const inlineStyles = this.theme ? styles.slice('<style>'.length, -'</style>'.length) : styles;
     return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>${esc(this.title || 'plot-ts Chart')}</title>
   <style>
-    body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f7; }
-    .chart-container { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20px; }
-    ${generateStyles(palette(this.accent))}
+    body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: ${this.theme?.tokens['--paper'] ?? '#f5f5f7'}; }
+    .chart-container { background: ${this.theme?.tokens['--paper'] ?? 'white'}; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 20px; }
+    ${inlineStyles}
   </style>
 </head>
 <body>
@@ -248,24 +258,24 @@ export class SvgFigure {
 
   private wrapSvg(content: Html): string {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-  ${content}
+  ${this.theme ? h('rect', { width: this.width, height: this.height, fill: this.theme.tokens['--paper'], 'data-plot-surface': 'paper' }) : ''}${content}
 </svg>`;
   }
 }
 
 /** Dispatch each panel through the same renderer used by single-chart figures. */
-function renderChart(chart: Chart, width: number, height: number): Html {
+function renderChart(chart: Chart, width: number, height: number, theme?: CanonicalTheme): Html {
   switch (chart.type) {
-    case 'column': return renderColumn(chart, width, height);
-    case 'line': return renderLine(chart, width, height);
-    case 'scatter': return renderScatter(chart, width, height);
-    case 'heatmap': return renderHeatmap(chart, width, height);
-    case 'waterfall': return renderWaterfall(chart, width, height);
-    case 'donut': return renderDonut(chart, width, height);
-    case 'radar': return renderRadar(chart, width, height);
-    case 'gauge': return renderGauge(chart, width, height);
-    case 'slope': return renderSlope(chart, width, height);
-    case 'pyramid': return renderPyramid(chart, width, height);
+    case 'column': return renderColumn(chart, width, height, theme);
+    case 'line': return renderLine(chart, width, height, theme);
+    case 'scatter': return renderScatter(chart, width, height, theme);
+    case 'heatmap': return renderHeatmap(chart, width, height, theme);
+    case 'waterfall': return renderWaterfall(chart, width, height, theme);
+    case 'donut': return renderDonut(chart, width, height, theme);
+    case 'radar': return renderRadar(chart, width, height, theme);
+    case 'gauge': return renderGauge(chart, width, height, theme);
+    case 'slope': return renderSlope(chart, width, height, theme);
+    case 'pyramid': return renderPyramid(chart, width, height, theme);
   }
 }
 

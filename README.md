@@ -343,6 +343,14 @@ ECharts server export, and still-separate browser acceptance.
 
 ---
 
+## Canonical themes (opt-in)
+
+Both engines accept the same 14 pinned canonical themes, for example
+`new Figure(container, { theme: 'sage-dark' })` and
+`svg.figure({ theme: 'sage-dark' })`. Omitting the theme preserves legacy output.
+Explicit mark colors, numerical heatmap colormaps and gauge bands keep precedence.
+See [canonical theme selection, mapping and verification](docs/canonical-themes.md).
+
 ## 📌 技术栈
 
 | 层 | 技术 | 说明 |

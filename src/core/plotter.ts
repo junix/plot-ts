@@ -2,11 +2,13 @@
 import * as echarts from 'echarts'
 import type { ECharts, EChartsOption } from 'echarts'
 import { COLORS } from '../style/palette.js'
+import { findCanonicalTheme, canonicalEChartsTheme, type CanonicalTheme } from '../style/canonical.js'
 
 export interface FigureConfig {
   width?: number | string
   height?: number | string
   title?: string
+  /** Canonical names opt in; other strings are passed unchanged to ECharts. */
   theme?: string
   animated?: boolean
   animationDuration?: number
@@ -111,6 +113,7 @@ export class Figure {
   private dom: HTMLElement
   private chart: ECharts
   private config: FigureConfig
+  private canonicalTheme: CanonicalTheme | undefined
   private series: any[] = []
   private heatmapColormap: HeatmapColormap | undefined
   private xAxisConfig: any = {}
@@ -146,7 +149,8 @@ export class Figure {
     }
 
     // Initialize ECharts
-    this.chart = echarts.init(this.dom, config.theme)
+    this.canonicalTheme = findCanonicalTheme(config.theme)
+    this.chart = echarts.init(this.dom, this.canonicalTheme ? canonicalEChartsTheme(this.canonicalTheme) : config.theme)
     this.titleText = config.title || ''
 
     // Handle resize
@@ -186,6 +190,11 @@ export class Figure {
     return this
   }
 
+  private seriesColor(index: number): string | undefined {
+    const colors = this.canonicalTheme?.series ?? COLORS.tableau
+    return colors[index % colors.length]
+  }
+
   // Plot line chart
   plot(
     xData: number[],
@@ -193,7 +202,7 @@ export class Figure {
     config: LineConfig & { name?: string } = {}
   ): this {
     const data = xData.map((x, i) => [x, yData[i]])
-    const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
+    const color = config.color || this.seriesColor(this.series.length)
 
     this.series.push({
       id: `plot-ts-series-${this.series.length}`,
@@ -222,7 +231,7 @@ export class Figure {
     config: ScatterConfig & { name?: string } = {}
   ): this {
     const data = xData.map((x, i) => [x, yData[i]])
-    const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
+    const color = config.color || this.seriesColor(this.series.length)
 
     const symbolMap: Record<string, string> = {
       circle: 'circle', square: 'rect', triangle: 'triangle', diamond: 'diamond'
@@ -252,7 +261,7 @@ export class Figure {
     values: number[],
     config: BarConfig & { name?: string } = {}
   ): this {
-    const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
+    const color = config.color || this.seriesColor(this.series.length)
 
     this.series.push({
       id: `plot-ts-series-${this.series.length}`,
@@ -343,7 +352,7 @@ export class Figure {
         name: groups[i],
         value: data,
         itemStyle: {
-          color: config.color || COLORS.tableau[i % COLORS.tableau.length]
+          color: config.color || this.seriesColor(i)
         }
       })
     }
@@ -376,7 +385,7 @@ export class Figure {
             },
             style: {
               fill: params.itemStyle.color,
-              stroke: '#333',
+              stroke: this.canonicalTheme?.tokens['--line'] ?? '#333',
               lineWidth: 1
             }
           }]
@@ -399,7 +408,7 @@ export class Figure {
     config: AreaConfig & { name?: string } = {}
   ): this {
     const data = xData.map((x, i) => [x, yData[i]])
-    const color = config.color || COLORS.tableau[this.series.length % COLORS.tableau.length]
+    const color = config.color || this.seriesColor(this.series.length)
 
     this.series.push({
       id: `plot-ts-series-${this.series.length}`,
@@ -429,7 +438,7 @@ export class Figure {
     return this.chart.getDataURL({
       type,
       pixelRatio: 2,
-      backgroundColor: '#fff'
+      backgroundColor: this.canonicalTheme?.tokens['--paper'] ?? '#fff'
     })
   }
 
