@@ -94,6 +94,10 @@ export function text(x: number, y: number, content: string, style?: {
   anchor?: 'start' | 'middle' | 'end';
   baseline?: 'auto' | 'middle' | 'hanging';
   fill?: string;
+  /** Optional full text when the visible content is abbreviated. */
+  title?: string;
+  /** Explicit rendered advance width, used only for fitted labels. */
+  textLength?: number;
 }): Html {
   return h('text', {
     x: n(x),
@@ -105,7 +109,9 @@ export function text(x: number, y: number, content: string, style?: {
       'font-size': style?.size ?? 11,
       'font-weight': style?.weight ?? 400,
     }),
-  }, esc(content));
+    textLength: style?.textLength === undefined ? undefined : n(style.textLength),
+    lengthAdjust: style?.textLength === undefined ? undefined : 'spacingAndGlyphs',
+  }, style?.title === undefined ? '' : h('title', {}, esc(style.title)), esc(content));
 }
 
 /** 样式属性辅助：转数字 px */

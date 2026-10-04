@@ -343,3 +343,62 @@ not additions to or replacements for the original corpus.
 The remaining limits are explicit: finite arithmetic overflow, donut hole-ratio
 policy, dimensions/layout/long labels, CSS/SVG paint validation, unrelated option
 schemas, and real browser/CI execution are outside this bounded change.
+
+## SVG bounded heatmap label checkpoint (2026-10-04)
+
+Base: `57da90372827b35b6a30efbcdc9a81004987e6ba`. All 68 baseline files were
+verified by Git blob SHA against that immutable remote tree before editing.
+The installed dependency tree was reused read-only through a symlink; package
+and lock files are unchanged. No browser action, repository push, or npm publish
+was performed in this verification task.
+
+The first bounded-layout change addresses heatmap label width. A 300×200 heatmap
+with two 64-character Y labels previously had zero-width cells at x=458, outside
+its viewport. The candidate keeps a 116px gutter and visible 87×87px cells.
+Overlong X labels also fit their own bands instead of overlapping neighboring
+labels and viewport edges. Full escaped labels remain in SVG title elements;
+truncation preserves Unicode grapheme boundaries. Ordinary text whose estimated
+width fits retains its old bytes. The policy, narrow-band behavior, and its
+approximate font-width limitation are documented in
+[SVG heatmap layout](svg-heatmap-layout.md).
+
+Final checks, using Node 24.19.0, tsx 4.23.1, TypeScript 7.0.2, Vite 8.1.5,
+esbuild 0.28.1, and the installed declared ECharts 6.1.0 dependency:
+
+- Exact `npm test`: **621 passed**, zero failed/skipped
+- Exact `npm run lint`: exit 0
+- Exact `npm run build`: exit 0 (browser ESM/UMD/IIFE, standalone SVG, declarations)
+- Exact `npm run test:package`: rebuild plus **6 passed**, zero failed/skipped;
+  includes bounded labels via the actual packed zero-runtime-dependency SVG entry
+- Additional strict source/test/example/audit TypeScript check: exit 0
+- New layout suite against the unchanged baseline: **15 failed and 4 passed**;
+  all 19 pass on the candidate. The extra helper test checks title escaping and
+  optional SVG text-advance attributes.
+- Existing 118-case diagnostic replay: exit 0, preserving **89 SVGs byte-for-byte**
+  and the existing 29 expected rejections; all 13 portable witnesses pass
+- **80 ordinary heatmap controls** across four dimensions and four palette choices
+  retain byte-identical SVG and pixel-identical Sharp output
+- All **89 audit SVGs** are also pixel-identical under Sharp 0.35.4 / librsvg
+  2.62.91; 264 saved SVG witnesses/controls parse as XML
+- Seven before/after raster pairs were inspected: long Y labels, long X labels,
+  160×120 panels, singleton combining-mark labels, dense columns, CJK/joined
+  emoji, and ordinary unchanged labels. Truncated labels fit their allotted
+  horizontal space in those renders; extremely narrow bands deliberately keep
+  title-only labels. Raster files remain local evidence, not package assets.
+
+The supplemental strict command uses the declared TypeScript 7 binary with
+`--ignoreConfig --noEmit --rootDir . --target ES2022 --module NodeNext
+--moduleResolution NodeNext --strict --noUncheckedIndexedAccess
+--exactOptionalPropertyTypes --esModuleInterop --skipLibCheck --types node`
+over `src/**/*.ts`, `tests/*.test.ts`, `examples/*.ts`, and
+`tools/svg-edge-audit/*.ts`. `--ignoreConfig` is required by this compiler when
+explicit input files are passed; the separate exact lint/build scripts use the
+repository's unchanged tsconfig.
+
+This does not close the full layout-envelope backlog. Independently reproduced
+negative radar radii in very small panels, zero-width slope/pyramid plots at the
+current grid minimum, and finite extreme-domain failures in line/heatmap/donut
+remain open, with concrete inputs in the layout policy's follow-up section.
+It also does not certify browser text metrics, tooltip behavior, browser bundle
+visuals, or CI. XML parsing and successful rasterization alone did not detect
+those known numeric/geometry defects.

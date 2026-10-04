@@ -24,3 +24,10 @@ test('rich only expands supported formatting after escaping input', () => {
   assert.equal(rich('**bold** <img src=x onerror=alert(1)>'),
     '<b>bold</b> &lt;img src=x onerror=alert(1)&gt;');
 });
+
+test('fitted SVG text escapes its full title and sets an explicit advance width', () => {
+  const output = text(10, 20, 'Long…', { title: '<Long & full>', textLength: 33.123 });
+  assert.match(output, /textLength="33.12" lengthAdjust="spacingAndGlyphs"/);
+  assert.match(output, /<title>&lt;Long &amp; full&gt;<\/title>Long…<\/text>/);
+  assert.doesNotMatch(text(10, 20, 'Short'), /<title>|textLength|lengthAdjust/);
+});

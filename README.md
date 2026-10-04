@@ -228,7 +228,15 @@ SVG 的 donut/radar 仅接受非负数值；显式 radar 最大值必须为正�
 centered below its data column, using the existing 24px bottom margin. Fewer
 labels leave the remaining columns unlabeled; extra X labels are ignored. Text
 is XML-escaped. Omitted X labels keep the existing 2px margin, while `xLabels: []`
-retains the existing 24px layout without text. Y-label layout is unchanged.
+retains the existing 24px layout without text. Extra Y labels are also ignored.
+
+Long heatmap labels are abbreviated with an ellipsis; their complete escaped
+text is retained in a nested SVG `<title>`. Y-label space is capped at 40% of the
+width remaining after the right margin, and X labels fit their column band.
+The fit estimate is approximate and preserves ordinary labels unchanged. Labels
+too narrow to fit even an ellipsis retain only their full-text title. See the
+[bounded label layout policy](docs/svg-heatmap-layout.md) for exact budgets,
+Unicode handling, and limitations.
 
 ---
 

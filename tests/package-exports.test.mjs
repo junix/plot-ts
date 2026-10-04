@@ -78,6 +78,25 @@ test('packed SVG entry enforces the non-negative and explicit-option contracts',
   assert.match(output, /SVG option contracts passed/)
 })
 
+test('packed SVG heatmaps fit long labels while preserving full escaped titles', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure } from 'plot-ts/svg';
+    const label = '<Quarterly & international operations>'.repeat(20);
+    const svg = figure({ width: 160, height: 120 }).heatmap({
+      data: [[1]], xLabels: [label], yLabels: [label, 'ignored'],
+    }).render();
+    assert.ok(svg.includes('x="60" y="2" width="90" height="94"'));
+    assert.ok(svg.includes('<title>&lt;Quarterly &amp; international operations&gt;'));
+    assert.ok(svg.includes('lengthAdjust="spacingAndGlyphs"'));
+    assert.ok(svg.includes('…</text>'));
+    assert.ok(!svg.includes('ignored'));
+    assert.ok(!svg.includes('<Quarterly'));
+    console.log('Packed heatmap layout passed');
+  `)
+  assert.match(output, /Packed heatmap layout passed/)
+})
+
 test('packed declarations resolve the SVG entry in a clean NodeNext consumer', () => {
   writeFileSync(join(consumer, 'svg.ts'), `
     import { figure, SvgFigure, type SvgFigureOptions } from 'plot-ts/svg';

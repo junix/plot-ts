@@ -11,7 +11,7 @@
 import type { Html } from '../util/html.js';
 import { COLORS } from '../style/palette.js';
 import { h, join, text, n } from '../util/html.js';
-import { fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
+import { estimateTextWidth, fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
 import {
   plot,
   svg,
@@ -352,7 +352,9 @@ export interface HeatmapChart {
   type: 'heatmap';
   /** Rectangular rows of finite values; empty rectangular data is allowed. */
   data: number[][];
+  /** Labels beyond the columns are ignored; wide labels are ellipsized with a full-text SVG title. */
   xLabels?: string[];
+  /** Labels beyond the rows are ignored; the label gutter uses at most 40% of the available width. */
   yLabels?: string[];
   colormap?: 'viridis' | 'plasma' | 'blues';
 }
@@ -374,6 +376,34 @@ function heatmapPalette(colormap: HeatmapChart['colormap']): readonly string[] {
   }
 }
 
+/** Fit only overflowing labels, retaining the legacy text bytes when they fit. */
+function heatmapLabel(x: number, y: number, label: string, budget: number, anchor: 'middle' | 'end'): Html {
+  const style = { size: 10, anchor, fill: 'rgba(5, 28, 44, 0.58)' };
+  if (estimateTextWidth(label, 10) <= budget) return text(x, y, label, style);
+
+  // Segment by grapheme so an ellipsis never splits surrogate pairs, combining
+  // marks or joined emoji. Leave a small safety allowance for font variation.
+  const ellipsis = '…';
+  const ellipsisWidth = 10;
+  let visible = '';
+  let used = 0;
+  if (budget >= ellipsisWidth) {
+    for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(label)) {
+      const advance = estimateTextWidth(segment, 10);
+      if (used + advance + ellipsisWidth > budget) break;
+      visible += segment;
+      used += advance;
+    }
+    visible += ellipsis;
+  }
+  return text(x, y, visible, {
+    ...style, title: label,
+    // SVG fixes the final advance width even when the consumer uses a different
+    // font. A budget smaller than one ellipsis retains only the full-text title.
+    ...(visible ? { textLength: Math.min(budget, used + ellipsisWidth) } : {}),
+  });
+}
+
 export function renderHeatmap(c: HeatmapChart, width: number, height: number): Html {
   const palette = heatmapPalette(c.colormap);
   const rows = c.data.length;
@@ -390,7 +420,9 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
   }
   if (rows === 0 || cols === 0) return '';
 
-  const labelW = c.yLabels?.length ? Math.max(...c.yLabels.map(l => l.length)) * 7 + 10 : 10;
+  const yLabels = c.yLabels?.slice(0, rows);
+  const longestY = yLabels?.reduce((length, label) => Math.max(length, label.length), 0) ?? 0;
+  const labelW = Math.min(longestY * 7 + 10, Math.max(10, (width - 10) * 0.4));
   const labelH = c.xLabels ? 24 : 2;
 
   const p = plot(width, height, {
@@ -431,24 +463,24 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
   }
 
   // Y 轴标签
-  if (c.yLabels) {
-    c.yLabels.forEach((label, r) => {
-      labels.push(text(
+  if (yLabels) {
+    yLabels.forEach((label, r) => {
+      labels.push(heatmapLabel(
         p.x0 - 4,
         p.y0 + r * cellH + cellH / 2 + 4,
         label,
-        { size: 10, anchor: 'end', fill: 'rgba(5, 28, 44, 0.58)' }
+        Math.max(0, labelW - 8), 'end',
       ));
     });
   }
 
   // X labels use the existing bottom margin and align with actual columns.
   c.xLabels?.slice(0, cols).forEach((label, col) => {
-    labels.push(text(
+    labels.push(heatmapLabel(
       p.x0 + (col + 0.5) * cellW,
       p.y0 + p.h + 16,
       label,
-      { size: 10, anchor: 'middle', fill: 'rgba(5, 28, 44, 0.58)' }
+      Math.max(0, cellW - 8), 'middle',
     ));
   });
 
@@ -1028,4 +1060,3 @@ function niceCeilSeries(v: number): number {
   if (v >= 0) return 0;
   return -niceCeil(-v);
 }
-
