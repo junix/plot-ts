@@ -1,6 +1,8 @@
 // plot-ts Browser Renderer - ECharts powered with Matplotlib-style API
 import * as echarts from 'echarts'
 import type { ECharts, EChartsOption } from 'echarts'
+import { parseSurfacePolicy, type SurfacePolicy } from '../style/surface.js'
+import { EChartsSurfaceGuard, hasSurfaceGuard } from './surface.js'
 import { COLORS } from '../style/palette.js'
 import { findCanonicalTheme, canonicalEChartsTheme, type CanonicalTheme } from '../style/canonical.js'
 
@@ -10,6 +12,8 @@ export interface FigureConfig {
   title?: string
   /** Canonical names opt in; other strings are passed unchanged to ECharts. */
   theme?: string
+  /** Only registered automatic backings; authored conflicting raw fills reject. */
+  surfacePolicy?: SurfacePolicy
   animated?: boolean
   animationDuration?: number
 }
@@ -114,6 +118,8 @@ export class Figure {
   private chart: ECharts
   private config: FigureConfig
   private canonicalTheme: CanonicalTheme | undefined
+  private surfacePolicy: SurfacePolicy
+  private surfaceGuard: EChartsSurfaceGuard | undefined
   private series: any[] = []
   private heatmapColormap: HeatmapColormap | undefined
   private xAxisConfig: any = {}
@@ -123,10 +129,18 @@ export class Figure {
   private disposed = false
   private streamStops = new Set<() => void>()
   private handleResize = () => {
-    if (!this.disposed) this.chart.resize()
+    if (!this.disposed) {
+      this.surfaceGuard?.assertCompatible()
+      this.chart.resize()
+    }
   }
 
   constructor(container: HTMLElement, config: FigureConfig = {}) {
+    this.surfacePolicy = config.surfacePolicy === undefined ? 'themed-v1' : parseSurfacePolicy(config.surfacePolicy)
+    const existingChart = echarts.getInstanceByDom(container)
+    if (existingChart && (this.surfacePolicy !== 'themed-v1' || hasSurfaceGuard(existingChart))) {
+      throw new RangeError('Surface policy requires a new ECharts instance; dispose the existing chart first')
+    }
     this.dom = container
     this.config = {
       width: 800,
@@ -151,6 +165,9 @@ export class Figure {
     // Initialize ECharts
     this.canonicalTheme = findCanonicalTheme(config.theme)
     this.chart = echarts.init(this.dom, this.canonicalTheme ? canonicalEChartsTheme(this.canonicalTheme) : config.theme)
+    if (this.surfacePolicy !== 'themed-v1') {
+      this.surfaceGuard = new EChartsSurfaceGuard(this.chart, this.surfacePolicy, value => echarts.color.parse(value))
+    }
     this.titleText = config.title || ''
 
     // Handle resize
@@ -159,6 +176,7 @@ export class Figure {
 
   // Set title
   title(text: string): this {
+    this.surfaceGuard?.assertCompatible()
     this.titleText = text
     return this
   }
@@ -177,6 +195,7 @@ export class Figure {
 
   // Axis calls are partial updates: omitted fields keep their previous values.
   private configureAxis(axis: any, config: AxisConfig): void {
+    this.surfaceGuard?.assertCompatible()
     if (config.label !== undefined) axis.name = config.label
     if (config.min !== undefined) axis.min = config.min
     if (config.max !== undefined) axis.max = config.max
@@ -186,6 +205,7 @@ export class Figure {
 
   // Enable grid
   grid(show: boolean = true): this {
+    this.surfaceGuard?.assertCompatible()
     this.gridConfig = show
     return this
   }
@@ -201,6 +221,7 @@ export class Figure {
     yData: number[],
     config: LineConfig & { name?: string } = {}
   ): this {
+    this.surfaceGuard?.assertCompatible()
     const data = xData.map((x, i) => [x, yData[i]])
     const color = config.color || this.seriesColor(this.series.length)
 
@@ -230,6 +251,7 @@ export class Figure {
     yData: number[],
     config: ScatterConfig & { name?: string } = {}
   ): this {
+    this.surfaceGuard?.assertCompatible()
     const data = xData.map((x, i) => [x, yData[i]])
     const color = config.color || this.seriesColor(this.series.length)
 
@@ -261,6 +283,7 @@ export class Figure {
     values: number[],
     config: BarConfig & { name?: string } = {}
   ): this {
+    this.surfaceGuard?.assertCompatible()
     const color = config.color || this.seriesColor(this.series.length)
 
     this.series.push({
@@ -293,6 +316,7 @@ export class Figure {
     yLabels: string[] = [],
     config: HeatmapConfig = {}
   ): this {
+    this.surfaceGuard?.assertCompatible()
     // One visualMap is shared by all heatmaps. Later omissions inherit its palette.
     const colormap = resolveHeatmapColormap(config.colormap === undefined ? this.heatmapColormap : config.colormap)
     if (this.heatmapColormap !== undefined && colormap !== this.heatmapColormap) {
@@ -341,6 +365,7 @@ export class Figure {
     distributions: number[][],
     config: { color?: string } = {}
   ): this {
+    this.surfaceGuard?.assertCompatible()
     // Convert distributions to violin format
     const seriesData: any[] = []
 
@@ -407,6 +432,7 @@ export class Figure {
     yData: number[],
     config: AreaConfig & { name?: string } = {}
   ): this {
+    this.surfaceGuard?.assertCompatible()
     const data = xData.map((x, i) => [x, yData[i]])
     const color = config.color || this.seriesColor(this.series.length)
 
@@ -435,10 +461,14 @@ export class Figure {
 
   // Export chart as image
   exportImage(type: 'png' | 'jpeg' = 'png'): string {
+    if (this.surfacePolicy !== 'themed-v1' && type === 'jpeg') {
+      throw new RangeError('JPEG cannot preserve the selected transparent surface policy; use PNG or themed-v1')
+    }
+    this.surfaceGuard?.assertCompatible()
     return this.chart.getDataURL({
       type,
       pixelRatio: 2,
-      backgroundColor: this.canonicalTheme?.tokens['--paper'] ?? '#fff'
+      backgroundColor: this.surfacePolicy === 'themed-v1' ? (this.canonicalTheme?.tokens['--paper'] ?? '#fff') : 'transparent'
     })
   }
 
@@ -460,6 +490,7 @@ export class Figure {
   appendPoint(x: number, y: number, seriesIndex: number = 0, maxPoints: number = 50): void {
     if (this.series[seriesIndex]) {
       validateMaxPoints(maxPoints)
+      this.surfaceGuard?.assertCompatible()
       const series = this.series[seriesIndex]
       series.data.push([x, y])
 
@@ -489,13 +520,28 @@ export class Figure {
     if (this.disposed) return () => {}
     // Fail synchronously rather than throwing on each scheduled tick.
     validateMaxPoints(maxPoints)
+    this.surfaceGuard?.assertCompatible()
 
     let active = true
+    const checkOwnership = () => {
+      try {
+        this.surfaceGuard?.assertCompatible()
+      } catch (error) {
+        // A lost surface owner is not a retryable background operation. Stop
+        // this stream before surfacing one error through the host callback.
+        stop()
+        throw error
+      }
+    }
     const timer = setInterval(() => {
       if (!active || this.disposed) return
+      checkOwnership()
       const { x, y } = generator()
-      // The generator may stop this stream or dispose the figure itself.
-      if (active && !this.disposed) this.appendPoint(x, y, seriesIndex, maxPoints)
+      // The generator may stop/dispose or mutate the raw chart itself.
+      if (active && !this.disposed) {
+        checkOwnership()
+        this.appendPoint(x, y, seriesIndex, maxPoints)
+      }
     }, interval)
 
     const stop = () => {
@@ -510,6 +556,7 @@ export class Figure {
 
   // Render the chart
   render(): void {
+    this.surfaceGuard?.assertCompatible()
     const option: EChartsOption = {
       title: {
         text: this.titleText,
@@ -597,6 +644,7 @@ export class Figure {
 
   // Resize chart
   resize(): void {
+    this.surfaceGuard?.assertCompatible()
     this.chart.resize()
   }
 
@@ -606,6 +654,7 @@ export class Figure {
     this.disposed = true
     window.removeEventListener('resize', this.handleResize)
     for (const stop of this.streamStops) stop()
+    this.surfaceGuard?.restore()
     this.chart.dispose()
   }
 

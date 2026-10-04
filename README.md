@@ -353,8 +353,9 @@ See [canonical theme selection, mapping and verification](docs/canonical-themes.
 
 The SVG/HTML engine also accepts exact versioned `surfacePolicy` values, including
 `transparent-auto-v1`, while preserving semantic marks and default output. See
-[SVG automatic surfaces](docs/svg-surface-policy.md); browser Figure integration
-is separate.
+[SVG automatic surfaces](docs/svg-surface-policy.md) and the separate
+[Figure/ECharts surface adapter](docs/browser-surface-policy.md), including authored
+background conflicts and transparent PNG export.
 
 ## 📌 技术栈
 

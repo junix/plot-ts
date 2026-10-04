@@ -264,8 +264,9 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     import { figure, Figure, svg } from 'plot-ts';
     import type { SvgFigure } from 'plot-ts/svg';
     const chart: Figure = figure(document.body, { width: 400 });
-    // @ts-expect-error This unit does not add surfacePolicy to browser Figure.
     figure(document.body, { surfacePolicy: 'transparent-auto-v1' });
+    // @ts-expect-error Browser surface policy identifiers are exact and versioned.
+    figure(document.body, { surfacePolicy: 'transparent' });
     const report: SvgFigure = svg.figure({ width: 400 });
     // @ts-expect-error Browser entry requires a container.
     figure({ width: 400 });

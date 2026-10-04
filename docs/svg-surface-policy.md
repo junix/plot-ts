@@ -32,10 +32,10 @@ names and null/non-string values, reject before other figure options are read.
 `parseSurfacePolicy` are exported from both package entries. The parser accepts
 only exact identifiers; it does not interpret undefined as a default.
 
-**This unit adds the option only to `SvgFigureOptions`.** Browser
-`FigureConfig`, ECharts component policies and `Figure.exportImage()` are not
-changed or promised by this feature. The standalone SVG engine still has no
-native PNG export method. Optional native SVG decoding is used only for testing.
+The option is available on `SvgFigureOptions`. Browser `FigureConfig` now also
+supports the shared policy through its separate [ECharts surface adapter](browser-surface-policy.md).
+The standalone SVG engine still has no native PNG export method; optional native
+SVG decoding is used for testing.
 
 ## Registered surfaces and preserved semantics
 
@@ -90,5 +90,5 @@ not replace the alpha-bearing originals.
 Browser acceptance remains unverified under the existing supported cloud-browser
 `net::ERR_BLOCKED_BY_CLIENT` blocker. Structural HTML/CSS checks and native SVG
 rasterization are not browser layout/interaction/animation acceptance. No browser
-workaround, remote CI, ECharts policy integration or scatter padding change is
-included here.
+workaround, remote CI or scatter padding change is included here. Browser engine
+policy behavior has its own explicitly bounded verification.

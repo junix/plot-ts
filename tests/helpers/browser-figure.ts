@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { transformSync } from 'esbuild'
+import { color as echartsColor } from 'echarts'
 import type { Figure } from '../../src/core/plotter.js'
 
 // These tests inspect the options and lifecycle calls sent to ECharts. They do
@@ -20,6 +21,9 @@ export class FakeChart {
   disposeCalls = 0
   disposed = false
   exportCalls: any[] = []
+  private model: any = undefined
+
+  getOption(): any { return snapshot(this.model) }
 
   getDataURL(options: any): string {
     this.exportCalls.push(snapshot(options))
@@ -31,6 +35,15 @@ export class FakeChart {
     const copy = snapshot(option)
     this.options.push(copy)
     this.setOptionCalls.push({ option: copy, options: snapshot(options) })
+    const merge = (old: any, next: any): any => {
+      if (next && typeof next === 'object' && !Array.isArray(next)) {
+        const result = { ...old }
+        for (const key of Object.keys(next)) result[key] = merge(old?.[key], next[key])
+        return result
+      }
+      return snapshot(next)
+    }
+    this.model = merge(options === true || options?.notMerge ? undefined : this.model, option)
   }
 
   resize(): void {
@@ -44,7 +57,7 @@ export class FakeChart {
   }
 }
 
-export function createBrowserHarness(sourceRoot: string = process.cwd()) {
+export function createBrowserHarness(sourceRoot: string = process.cwd(), injectedECharts?: any, injectedDocument?: any) {
   const charts: FakeChart[] = []
   const initThemes: any[] = []
   const resizeListeners = new Set<() => void>()
@@ -88,7 +101,9 @@ export function createBrowserHarness(sourceRoot: string = process.cwd()) {
     },
   }
 
-  const echarts = {
+  const echarts = injectedECharts ?? {
+    color: echartsColor,
+    getInstanceByDom(): undefined { return undefined },
     init(_dom: unknown, theme: unknown): FakeChart {
       initThemes.push(snapshot(theme))
       const chart = new FakeChart()
@@ -111,8 +126,8 @@ export function createBrowserHarness(sourceRoot: string = process.cwd()) {
       format: 'cjs',
     })
     const module = { exports: {} }
-    const execute = new Function('require', 'module', 'exports', 'window', 'setInterval', 'clearInterval', code)
-    execute(require, module, module.exports, window, timers.setInterval, timers.clearInterval)
+    const execute = new Function('require', 'module', 'exports', 'window', 'setInterval', 'clearInterval', 'document', code)
+    execute(require, module, module.exports, window, timers.setInterval, timers.clearInterval, injectedDocument)
     return module.exports
   }
   const rejectImport = (specifier: string): never => { throw new Error(`Unexpected import: ${specifier}`) }
@@ -128,6 +143,8 @@ export function createBrowserHarness(sourceRoot: string = process.cwd()) {
     if (specifier === 'echarts') return echarts
     if (specifier === '../style/palette.js') return palette
     if (specifier === '../style/canonical.js') return canonicalModule()
+    if (specifier === '../style/surface.js') return evaluate('src/style/surface.ts', rejectImport)
+    if (specifier === './surface.js') return evaluate('src/core/surface.ts', rejectImport)
     return rejectImport(specifier)
   }) as { Figure: typeof Figure }
 

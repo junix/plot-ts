@@ -12,7 +12,7 @@ export { COLORS, THEMES, getTheme, setTheme, withTheme } from './style/palette.j
 
 export { CANONICAL_THEME_NAMES, getCanonicalTheme, type CanonicalThemeName, type CanonicalTheme, type CanonicalTokenName } from './style/canonical.js'
 
-// Surface policies are currently consumed by the SVG/HTML engine only.
+// Versioned automatic-surface policy shared by both rendering engines.
 export { SURFACE_POLICY_VERSION, SURFACE_POLICIES, parseSurfacePolicy, type SurfacePolicy } from './style/surface.js'
 
 // ========== 设计令牌 (专业风格) ==========
