@@ -415,3 +415,13 @@ pre-change SVG hashes, 217 byte/pixel controls and 314 XML parses. Empty chart
 configurations intentionally follow the same bounds; no-chart figures stay
 unrestricted beyond finite positive dimensions. Tiny positive serialization,
 extreme numeric data domains and browser/CI acceptance remain separate limits.
+
+
+## SVG computed data-domain checkpoint (2026-10-04)
+
+A separate change based on panel-geometry commit `c90eb3b` rejects overflowing
+computed domains/totals and underflowed positive nice bounds, including the
+finite `±1e308` line witness. Accepted scale arithmetic is unchanged. See the
+[computed-domain policy](svg-data-domains.md) and
+[exact verification report](verification-svg-data-domains-2026-10-04.md) for
+source/packed results, retained baseline SVGs, and the unchanged 118-case audit.

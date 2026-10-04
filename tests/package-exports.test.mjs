@@ -97,6 +97,41 @@ test('packed SVG heatmaps fit long labels while preserving full escaped titles',
   assert.match(output, /Packed heatmap layout passed/)
 })
 
+const dataDomainCases = JSON.parse(readFileSync(new URL('./fixtures/svg-data-domain-cases.json', import.meta.url), 'utf8'))
+const dataDomainGolden = JSON.parse(readFileSync(new URL('./fixtures/svg-data-domain-golden.json', import.meta.url), 'utf8'))
+const dataDomainChecks = `
+    const domainCases = ${JSON.stringify(dataDomainCases)};
+    const domainGolden = ${JSON.stringify(dataDomainGolden)};
+    for (const sample of domainCases) {
+      const original = structuredClone(sample.config);
+      const chart = domainFigure({ width: 800, height: 500 })[sample.method](sample.config);
+      if (sample.error) {
+        assert.throws(() => chart.render(), error => error instanceof RangeError && error.message.includes(sample.error));
+        assert.throws(() => chart.renderHtml(), RangeError);
+        assert.throws(() => domainFigure({ width: 1000, height: 500 }).heatmap({ data: [[1]] })[sample.method](sample.config).render(), RangeError);
+      } else {
+        const result = chart.render();
+        assert.doesNotMatch(result, /NaN|Infinity|undefined/);
+        assert.equal(createHash('sha256').update(result).digest('hex'), domainGolden[sample.name]);
+        assert.equal(chart.render(), result);
+        assert.ok(chart.renderHtml().includes(result));
+      }
+      assert.deepEqual(sample.config, original);
+    }
+`
+
+test('packed SVG entry fails closed on unrepresentable computed data domains', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { createHash } from 'node:crypto';
+    import { figure as domainFigure } from 'plot-ts/svg';
+    assert.equal(typeof globalThis.document, 'undefined');
+    ${dataDomainChecks}
+    console.log('Packed data domains passed');
+  `)
+  assert.match(output, /Packed data domains passed/)
+})
+
 const panelGeometryChecks = `
     const panels = [
       ['bar', { categories: ['A'], series: [{ values: [1] }] }, { categories: [], series: [] }, 10, 46],
@@ -167,6 +202,7 @@ test('root export preserves browser API and SVG namespace with its declared ECha
   const output = run(`
     import assert from 'node:assert/strict';
     import { Figure, figure, svg } from 'plot-ts';
+    import { createHash } from 'node:crypto';
     import { figure as svgFigure, SvgFigure } from 'plot-ts/svg';
     assert.equal(typeof Figure, 'function');
     assert.equal(typeof figure, 'function');
@@ -174,6 +210,8 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     assert.ok(svg.figure() instanceof svg.SvgFigure);
     assert.ok(svg.figure().render().startsWith('<svg'));
     assert.ok(svgFigure() instanceof SvgFigure);
+    const domainFigure = svg.figure;
+    ${dataDomainChecks}
     const panelFigure = svg.figure;
     ${panelGeometryChecks}
     console.log('Root package smoke passed');

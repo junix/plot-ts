@@ -149,3 +149,14 @@ dependencies. The sign/option verification section in
 [the checkpoint report](verification-2026-10-03.md#svg-signoption-contract-checkpoint-2026-10-04)
 records the bounded before/after evidence. Existing historical test counts and
 snapshots above describe their original checkpoints, not the current contract.
+
+
+## Computed numeric-data domains
+
+The later [computed-domain contract](svg-data-domains.md) additionally rejects
+unrepresentable spans, required nice bounds, partial totals and mapped
+coordinates for extreme finite inputs. It preserves accepted arithmetic and
+explicit radar/gauge clipping. The earlier scope statements and test counts
+above describe their historical checkpoints; see the
+[separate numeric-domain verification](verification-svg-data-domains-2026-10-04.md)
+for current evidence.

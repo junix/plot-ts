@@ -1,0 +1,41 @@
+{
+  "base": "c90eb3b30b6161425816057da2c32f67db07b43d",
+  "records": [
+    {
+      "name": "line-x-span",
+      "expectedError": "domain endpoints and span must be finite",
+      "sha256": "c8b76ffa7ebda424bf12049446f505b1a1c977df827d6f78fec55ab10ef3efa9",
+      "numericTokens": true
+    },
+    {
+      "name": "column-stack-positive",
+      "expectedError": "accumulated totals must be finite",
+      "sha256": "faabeba242c80b40016daab71e5d836fad5248f7104e62c8205f3e496ef4f304",
+      "numericTokens": true
+    },
+    {
+      "name": "waterfall-partial-overflow",
+      "expectedError": "accumulated totals must be finite",
+      "sha256": "b7563ad68fcde5ee8e268cf58fcb17662454d32d97d16d550c350a56e70dac40",
+      "numericTokens": true
+    },
+    {
+      "name": "heatmap-color-span",
+      "expectedError": "domain endpoints and span must be finite",
+      "sha256": "a57cb09834c3b47f58640589fd15f72a9ed359fe1091bb9df34007030dc71d74",
+      "numericTokens": false
+    },
+    {
+      "name": "donut-total",
+      "expectedError": "accumulated totals must be finite",
+      "sha256": "b8494d46a1e69f86d3d37f9f290baf07a29d9164297a7f04fa11995f14a71d8c",
+      "numericTokens": false
+    },
+    {
+      "name": "radar-upper-nice",
+      "expectedError": "inferred maximum must be finite and positive for positive data",
+      "sha256": "70985472ece3b76e385b068c83657a7a34c2aa71f546a1b77d1faba0ddf1625e",
+      "numericTokens": false
+    }
+  ]
+}

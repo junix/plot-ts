@@ -12,6 +12,7 @@ import type { Html } from '../util/html.js';
 import { COLORS } from '../style/palette.js';
 import { h, join, text, n } from '../util/html.js';
 import { estimateTextWidth, fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
+import { assertFiniteDomain, assertFiniteTotal, niceUpperBound } from './numeric.js';
 import {
   plot,
   svg,
@@ -62,6 +63,8 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
           if (v === null || v === undefined || !Number.isFinite(v)) continue;
           if (v < 0) negative += v;
           else positive += v;
+          assertFiniteTotal(c.type, positive);
+          assertFiniteTotal(c.type, negative);
         }
         negativeStackMin = Math.min(negativeStackMin, negative);
         return positive;
@@ -70,9 +73,10 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
 
   // 上界：有轴用 axis 阶梯（保证刻度好看），无轴用细阶梯（不浪费画布）
   const nice = showAxis ? niceCeilForAxis : niceCeil;
-  const rawMax = c.max ?? nice(maxOf(totals));
+  const rawMax = c.max ?? niceUpperBound(c.type, maxOf(totals), nice);
   const min = Math.min(0, stacked ? niceCeilSeries(negativeStackMin) : niceFloorSeries(c.series, c.categories));
   const max = rawMax <= min ? min + 1 : rawMax;
+  assertFiniteDomain(c.type, 'y', min, max);
 
   // 定义绘图区留白
   const p = drawablePlot(c.type, width, height, {
@@ -216,8 +220,9 @@ export function renderLine(c: LineChart, width: number, height: number): Html {
       dataMax = Math.max(dataMax, y);
     }
   }
-  const min = -niceCeilForAxis(-dataMin);
-  const max = Math.max(c.max !== undefined && Number.isFinite(c.max) ? c.max : niceCeil(dataMax), 1);
+  const min = -niceUpperBound(c.type, -dataMin, niceCeilForAxis);
+  const max = Math.max(c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax), 1);
+  assertFiniteDomain(c.type, 'y', min, max);
 
   let xMin = Infinity;
   let xMax = -Infinity;
@@ -227,6 +232,7 @@ export function renderLine(c: LineChart, width: number, height: number): Html {
     xMax = Math.max(xMax, x);
   }
   if (xMin === Infinity) xMin = xMax = 0;
+  assertFiniteDomain(c.type, 'x', xMin, xMax);
 
   const paths: Html[] = [];
   const areas: Html[] = [];
@@ -325,7 +331,9 @@ export function renderScatter(c: ScatterChart, width: number, height: number): H
     dataMax = Math.max(dataMax, pt.y);
   }
   if (xMin === Infinity) xMin = xMax = yMin = dataMax = 0;
-  const yMax = niceCeil(dataMax);
+  const yMax = niceUpperBound(c.type, dataMax);
+  assertFiniteDomain(c.type, 'x', xMin, xMax);
+  assertFiniteDomain(c.type, 'y', yMin, yMax);
 
   const { color } = seriesTone(0);
   const circles: Html[] = [];
@@ -448,6 +456,7 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
   const flat = c.data.flat();
   const min = Math.min(...flat);
   const max = Math.max(...flat);
+  assertFiniteDomain(c.type, 'color', min, max);
 
   const cells: Html[] = [];
   const labels: Html[] = [];
@@ -528,12 +537,14 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
   for (const v of c.values) {
     totals.push(runningTotal);
     runningTotal += v;
+    assertFiniteTotal(c.type, runningTotal);
   }
 
   // 每根柱子的起点和终点都参与定标，不能只用增量和最终合计。
   const allValues = [...totals, runningTotal];
   const min = Math.min(0, Math.min(...allValues));
-  const max = Math.max(0, niceCeil(Math.max(...allValues)));
+  const max = Math.max(0, niceUpperBound(c.type, Math.max(...allValues)));
+  assertFiniteDomain(c.type, 'y', min, max);
   const zeroY = yOf(p, Math.max(min, 0), min, max);
 
   const band = p.w / Math.max(1, c.categories.length);
@@ -621,7 +632,11 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
   assertPanelRadius(c.type, r, 40);
   const holeR = r * (c.holeRatio ?? 0.5);
 
-  const total = c.items.reduce((sum, item) => sum + item.value, 0);
+  const total = c.items.reduce((sum, item) => {
+    const next = sum + item.value;
+    assertFiniteTotal(c.type, next);
+    return next;
+  }, 0);
   if (total === 0) return '';
 
   let startAngle = -Math.PI / 2; // 从 12 点方向开始
@@ -718,8 +733,12 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
   assertPanelRadius(c.type, r, 80);
   const axisCount = c.axes.length;
   // 所有系列和可见轴共享默认上界，保留单系列形状并使系列之间可比较。
-  const inferred = niceCeil(maxOf(c.series.flatMap(s => s.values.slice(0, axisCount))));
-  const sharedMax = Number.isFinite(inferred) && inferred > 0 ? inferred : 1;
+  // A shared inferred domain is needed only by axes without explicit maxima.
+  // Do not silently replace overflow/underflow with 1 or reject unused scales.
+  const inferred = c.axes.some(axis => axis.max === undefined)
+    ? niceUpperBound(c.type, maxOf(c.series.flatMap(s => s.values.slice(0, axisCount))))
+    : 0;
+  const sharedMax = inferred > 0 ? inferred : 1;
   const maxima = c.axes.map(axis => axis.max ?? sharedMax);
 
   const polygons: Html[] = [];
@@ -920,7 +939,8 @@ export function renderSlope(c: SlopeChart, width: number, height: number): Html 
 
   const allValues = c.items.flatMap(i => [i.left, i.right]);
   const min = Math.min(0, Math.min(...allValues));
-  const max = c.max ?? niceCeil(Math.max(...allValues));
+  const max = c.max ?? niceUpperBound(c.type, Math.max(...allValues));
+  assertFiniteDomain(c.type, 'y', min, max);
 
   const leftX = p.x0;
   const rightX = p.x0 + p.w;
@@ -1110,5 +1130,5 @@ function niceFloorSeries(series: ColumnChart['series'], categories: string[]): n
 
 function niceCeilSeries(v: number): number {
   if (v >= 0) return 0;
-  return -niceCeil(-v);
+  return -niceUpperBound('column', -v);
 }

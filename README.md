@@ -195,6 +195,10 @@ const html = report.renderHtml()
 这些检查也适用于空数据配置。没有添加图表的空画布仍可使用任意有限正尺寸。
 标题预留空间、选项相关留白和精确边界见 [SVG panel geometry](docs/svg-panel-geometry.md)。
 
+Extreme finite SVG data must also produce representable domains and totals; see
+[computed numeric-data domains](docs/svg-data-domains.md) and the
+[verification report](docs/verification-svg-data-domains-2026-10-04.md).
+
 源码目录安装开发依赖后，可运行确定性的 2×2 示例和十种图表的完整网格：
 
 ```bash

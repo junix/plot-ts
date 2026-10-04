@@ -1,0 +1,1794 @@
+[
+  {
+    "name": "line-x-span",
+    "method": "line",
+    "config": {
+      "x": [
+        -1e+308,
+        1e+308
+      ],
+      "series": [
+        {
+          "y": [
+            1,
+            2
+          ],
+          "area": true
+        }
+      ]
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "line-y-span",
+    "method": "line",
+    "config": {
+      "x": [
+        0,
+        1
+      ],
+      "series": [
+        {
+          "y": [
+            -1e+308,
+            1e+308
+          ],
+          "area": true
+        }
+      ]
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "line-upper-nice",
+    "method": "line",
+    "config": {
+      "x": [
+        0
+      ],
+      "series": [
+        {
+          "y": [
+            1.7976931348623157e+308
+          ],
+          "area": true
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "line-lower-nice",
+    "method": "line",
+    "config": {
+      "x": [
+        0
+      ],
+      "series": [
+        {
+          "y": [
+            -1.7976931348623157e+308
+          ],
+          "area": true
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "line-positive-underflow",
+    "method": "line",
+    "config": {
+      "x": [
+        0
+      ],
+      "series": [
+        {
+          "y": [
+            5e-324
+          ],
+          "area": true
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "line-negative-underflow",
+    "method": "line",
+    "config": {
+      "x": [
+        0
+      ],
+      "series": [
+        {
+          "y": [
+            -5e-324
+          ],
+          "area": true
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "line-extrapolation",
+    "method": "line",
+    "config": {
+      "x": [
+        0
+      ],
+      "series": [
+        {
+          "y": [
+            1.7976931348623157e+308
+          ],
+          "area": true
+        }
+      ],
+      "max": 1
+    },
+    "error": "SVG mapped coordinates must be finite"
+  },
+  {
+    "name": "line-offset-overflow",
+    "method": "line",
+    "config": {
+      "x": [
+        0,
+        1
+      ],
+      "series": [
+        {
+          "y": [
+            -1e+308,
+            1e+308
+          ],
+          "area": true
+        }
+      ],
+      "max": 1
+    },
+    "error": "SVG mapped coordinates must be finite"
+  },
+  {
+    "name": "column-y-span",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "series": [
+        {
+          "values": [
+            -1e+308,
+            1e+308
+          ]
+        }
+      ]
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "column-upper-nice",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308
+          ]
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "column-lower-nice",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            -1.7976931348623157e+308
+          ]
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "column-positive-underflow",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            5e-324
+          ]
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "column-negative-underflow",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            -5e-324
+          ]
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "column-stack-positive",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "A"
+      ],
+      "series": [
+        {
+          "values": [
+            1e+308
+          ]
+        },
+        {
+          "values": [
+            1e+308
+          ]
+        }
+      ],
+      "stacked": true
+    },
+    "error": "accumulated totals must be finite"
+  },
+  {
+    "name": "column-stack-negative",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "A"
+      ],
+      "series": [
+        {
+          "values": [
+            -1e+308
+          ]
+        },
+        {
+          "values": [
+            -1e+308
+          ]
+        }
+      ],
+      "stacked": true
+    },
+    "error": "accumulated totals must be finite"
+  },
+  {
+    "name": "column-extrapolation",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308
+          ]
+        }
+      ],
+      "max": 5e-324
+    },
+    "error": "SVG mapped coordinates must be finite"
+  },
+  {
+    "name": "scatter-x-span",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": -1e+308,
+          "y": 1
+        },
+        {
+          "x": 1e+308,
+          "y": 2
+        }
+      ],
+      "yAxis": true
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "scatter-y-span",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": -1e+308
+        },
+        {
+          "x": 1,
+          "y": 1e+308
+        }
+      ],
+      "yAxis": true
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "scatter-upper-nice",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": 1.7976931348623157e+308
+        }
+      ],
+      "yAxis": true
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "scatter-positive-underflow",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": 5e-324
+        }
+      ],
+      "yAxis": true
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "heatmap-color-span",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          -1e+308,
+          1e+308
+        ]
+      ]
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "waterfall-positive-total",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "values": [
+        1e+308,
+        1e+308
+      ]
+    },
+    "error": "accumulated totals must be finite"
+  },
+  {
+    "name": "waterfall-negative-total",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "values": [
+        -1e+308,
+        -1e+308
+      ]
+    },
+    "error": "accumulated totals must be finite"
+  },
+  {
+    "name": "waterfall-partial-overflow",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1",
+        "2"
+      ],
+      "values": [
+        1e+308,
+        1e+308,
+        -1e+308
+      ]
+    },
+    "error": "accumulated totals must be finite"
+  },
+  {
+    "name": "waterfall-y-span",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1",
+        "2"
+      ],
+      "values": [
+        -1e+308,
+        1e+308,
+        1e+308
+      ]
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "waterfall-upper-nice",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "values": [
+        1.7976931348623157e+308
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "waterfall-positive-underflow",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "values": [
+        5e-324
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "donut-total",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 1e+308
+        },
+        {
+          "name": "1",
+          "value": 1e+308
+        }
+      ]
+    },
+    "error": "accumulated totals must be finite"
+  },
+  {
+    "name": "radar-upper-nice",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        },
+        {
+          "name": "1"
+        },
+        {
+          "name": "2"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308,
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "radar-positive-underflow",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            5e-324
+          ]
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "slope-y-span",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": -1e+308,
+          "right": 1e+308
+        }
+      ]
+    },
+    "error": "domain endpoints and span must be finite"
+  },
+  {
+    "name": "slope-upper-nice",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 0,
+          "right": 1.7976931348623157e+308
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "slope-positive-underflow",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 0,
+          "right": 5e-324
+        }
+      ]
+    },
+    "error": "inferred maximum must be finite and positive for positive data"
+  },
+  {
+    "name": "slope-extrapolation",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 0,
+          "right": 1.7976931348623157e+308
+        }
+      ],
+      "max": 5e-324
+    },
+    "error": "SVG mapped coordinates must be finite"
+  },
+  {
+    "name": "slope-offset-overflow",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": -1e+308,
+          "right": 1e+308
+        }
+      ],
+      "max": 1
+    },
+    "error": "SVG mapped coordinates must be finite"
+  },
+  {
+    "name": "gauge-upper-nice",
+    "method": "gauge",
+    "config": {
+      "value": 1.7976931348623157e+308
+    },
+    "error": "Gauge maximum must be finite and positive"
+  },
+  {
+    "name": "gauge-positive-underflow",
+    "method": "gauge",
+    "config": {
+      "value": 5e-324
+    },
+    "error": "Gauge maximum must be finite and positive"
+  },
+  {
+    "name": "pyramid-upper-nice",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 1.7976931348623157e+308
+        }
+      ]
+    },
+    "error": "Pyramid maximum must be finite and positive"
+  },
+  {
+    "name": "pyramid-positive-underflow",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 5e-324
+        }
+      ]
+    },
+    "error": "Pyramid maximum must be finite and positive"
+  },
+  {
+    "name": "bar-supported-0",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "series": [
+        {
+          "values": [
+            2,
+            4
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-1",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "series": [
+        {
+          "values": [
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-2",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "series": [
+        {
+          "values": [
+            4,
+            4
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-3",
+    "method": "bar",
+    "config": {
+      "categories": [],
+      "series": [
+        {
+          "values": []
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-4",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "series": [
+        {
+          "values": [
+            -1e+307,
+            1e+307
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-5",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            5e-323
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-6",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            -5e-323
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "bar-supported-7",
+    "method": "bar",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308
+          ]
+        }
+      ],
+      "max": 1.7976931348623157e+308
+    }
+  },
+  {
+    "name": "line-supported-0",
+    "method": "line",
+    "config": {
+      "x": [
+        0,
+        1
+      ],
+      "series": [
+        {
+          "y": [
+            2,
+            4
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-1",
+    "method": "line",
+    "config": {
+      "x": [
+        0,
+        1
+      ],
+      "series": [
+        {
+          "y": [
+            0,
+            0
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-2",
+    "method": "line",
+    "config": {
+      "x": [
+        5,
+        5
+      ],
+      "series": [
+        {
+          "y": [
+            4,
+            4
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-3",
+    "method": "line",
+    "config": {
+      "x": [],
+      "series": [
+        {
+          "y": [],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-4",
+    "method": "line",
+    "config": {
+      "x": [
+        -1e+307,
+        1e+307
+      ],
+      "series": [
+        {
+          "y": [
+            -1e+307,
+            1e+307
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-5",
+    "method": "line",
+    "config": {
+      "x": [
+        1.7976931348623157e+308,
+        1.7976931348623157e+308
+      ],
+      "series": [
+        {
+          "y": [
+            1,
+            2
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-6",
+    "method": "line",
+    "config": {
+      "x": [
+        0,
+        5e-324
+      ],
+      "series": [
+        {
+          "y": [
+            1,
+            2
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "line-supported-7",
+    "method": "line",
+    "config": {
+      "x": [
+        0
+      ],
+      "series": [
+        {
+          "y": [
+            5e-323
+          ],
+          "area": true
+        }
+      ]
+    }
+  },
+  {
+    "name": "scatter-supported-0",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": 2
+        },
+        {
+          "x": 1,
+          "y": 4
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-1",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-2",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 5,
+          "y": 4
+        },
+        {
+          "x": 5,
+          "y": 4
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-3",
+    "method": "scatter",
+    "config": {
+      "points": [],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-4",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": -1e+307,
+          "y": -1e+307
+        },
+        {
+          "x": 1e+307,
+          "y": 1e+307
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-5",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 1.7976931348623157e+308,
+          "y": -1.7976931348623157e+308
+        },
+        {
+          "x": 1.7976931348623157e+308,
+          "y": -1.7976931348623157e+308
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-6",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": -5e-324
+        },
+        {
+          "x": 5e-324,
+          "y": 0
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "scatter-supported-7",
+    "method": "scatter",
+    "config": {
+      "points": [
+        {
+          "x": 0,
+          "y": 5e-323
+        }
+      ],
+      "yAxis": true
+    }
+  },
+  {
+    "name": "heatmap-supported-0",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-1",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-2",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          1.7976931348623157e+308,
+          1.7976931348623157e+308
+        ]
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-3",
+    "method": "heatmap",
+    "config": {
+      "data": []
+    }
+  },
+  {
+    "name": "heatmap-supported-4",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        []
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-5",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [],
+        []
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-6",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          -1e+307,
+          1e+307
+        ]
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-7",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          -5e-324,
+          5e-324
+        ]
+      ]
+    }
+  },
+  {
+    "name": "heatmap-supported-8",
+    "method": "heatmap",
+    "config": {
+      "data": [
+        [
+          5e-324,
+          5e-324
+        ]
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-0",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "values": [
+        2,
+        4
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-1",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "values": [
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-2",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1"
+      ],
+      "values": [
+        4,
+        -4
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-3",
+    "method": "waterfall",
+    "config": {
+      "categories": [],
+      "values": []
+    }
+  },
+  {
+    "name": "waterfall-supported-4",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0",
+        "1",
+        "2"
+      ],
+      "values": [
+        1e+307,
+        -2e+307,
+        1e+307
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-5",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "values": [
+        -1.7976931348623157e+308
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-6",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "values": [
+        -5e-324
+      ]
+    }
+  },
+  {
+    "name": "waterfall-supported-7",
+    "method": "waterfall",
+    "config": {
+      "categories": [
+        "0"
+      ],
+      "values": [
+        5e-323
+      ]
+    }
+  },
+  {
+    "name": "donut-supported-0",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 2
+        },
+        {
+          "name": "1",
+          "value": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "donut-supported-1",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 0
+        },
+        {
+          "name": "1",
+          "value": 0
+        }
+      ]
+    }
+  },
+  {
+    "name": "donut-supported-2",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 4
+        },
+        {
+          "name": "1",
+          "value": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "donut-supported-3",
+    "method": "donut",
+    "config": {
+      "items": []
+    }
+  },
+  {
+    "name": "donut-supported-4",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 8.988465674311579e+307
+        },
+        {
+          "name": "1",
+          "value": 8.988465674311579e+307
+        }
+      ]
+    }
+  },
+  {
+    "name": "donut-supported-5",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 5e-324
+        },
+        {
+          "name": "1",
+          "value": 5e-324
+        }
+      ]
+    }
+  },
+  {
+    "name": "donut-supported-6",
+    "method": "donut",
+    "config": {
+      "items": [
+        {
+          "name": "0",
+          "value": 5e-324
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-0",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        },
+        {
+          "name": "1"
+        },
+        {
+          "name": "2"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            2,
+            4,
+            3
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-1",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        },
+        {
+          "name": "1"
+        },
+        {
+          "name": "2"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-2",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        },
+        {
+          "name": "1"
+        },
+        {
+          "name": "2"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            4,
+            4,
+            4
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-3",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "A"
+        }
+      ],
+      "series": []
+    }
+  },
+  {
+    "name": "radar-supported-4",
+    "method": "radar",
+    "config": {
+      "axes": [],
+      "series": []
+    }
+  },
+  {
+    "name": "radar-supported-5",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        },
+        {
+          "name": "1"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            1e+307,
+            2e+307
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-6",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0"
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            5e-323
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-7",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0",
+          "max": 1.7976931348623157e+308
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-8",
+    "method": "radar",
+    "config": {
+      "axes": [
+        {
+          "name": "0",
+          "max": 5e-324
+        }
+      ],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "radar-supported-9",
+    "method": "radar",
+    "config": {
+      "axes": [],
+      "series": [
+        {
+          "values": [
+            1.7976931348623157e+308
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "gauge-supported-0",
+    "method": "gauge",
+    "config": {
+      "value": 2,
+      "max": 4
+    }
+  },
+  {
+    "name": "gauge-supported-1",
+    "method": "gauge",
+    "config": {
+      "value": 0
+    }
+  },
+  {
+    "name": "gauge-supported-2",
+    "method": "gauge",
+    "config": {
+      "value": 4,
+      "max": 4
+    }
+  },
+  {
+    "name": "gauge-supported-3",
+    "method": "gauge",
+    "config": {
+      "value": 0,
+      "bands": []
+    }
+  },
+  {
+    "name": "gauge-supported-4",
+    "method": "gauge",
+    "config": {
+      "value": 1e+307
+    }
+  },
+  {
+    "name": "gauge-supported-5",
+    "method": "gauge",
+    "config": {
+      "value": 5e-323
+    }
+  },
+  {
+    "name": "gauge-supported-6",
+    "method": "gauge",
+    "config": {
+      "value": 1.7976931348623157e+308,
+      "max": 1.7976931348623157e+308
+    }
+  },
+  {
+    "name": "gauge-supported-7",
+    "method": "gauge",
+    "config": {
+      "value": 1.7976931348623157e+308,
+      "max": 5e-324
+    }
+  },
+  {
+    "name": "slope-supported-0",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 2,
+          "right": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-1",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 0,
+          "right": 0
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-2",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 4,
+          "right": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-3",
+    "method": "slope",
+    "config": {
+      "items": []
+    }
+  },
+  {
+    "name": "slope-supported-4",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": -1e+307,
+          "right": 1e+307
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-5",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": -1.7976931348623157e+308,
+          "right": -1.7976931348623157e+308
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-6",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": -5e-324,
+          "right": 0
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-7",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 0,
+          "right": 5e-323
+        }
+      ]
+    }
+  },
+  {
+    "name": "slope-supported-8",
+    "method": "slope",
+    "config": {
+      "items": [
+        {
+          "name": "A",
+          "left": 0,
+          "right": 1.7976931348623157e+308
+        }
+      ],
+      "max": 1.7976931348623157e+308
+    }
+  },
+  {
+    "name": "pyramid-supported-0",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 2
+        },
+        {
+          "name": "1",
+          "value": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "pyramid-supported-1",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 0
+        },
+        {
+          "name": "1",
+          "value": 0
+        }
+      ]
+    }
+  },
+  {
+    "name": "pyramid-supported-2",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 4
+        },
+        {
+          "name": "1",
+          "value": 4
+        }
+      ]
+    }
+  },
+  {
+    "name": "pyramid-supported-3",
+    "method": "pyramid",
+    "config": {
+      "layers": []
+    }
+  },
+  {
+    "name": "pyramid-supported-4",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 1e+307
+        },
+        {
+          "name": "1",
+          "value": 2e+307
+        }
+      ]
+    }
+  },
+  {
+    "name": "pyramid-supported-5",
+    "method": "pyramid",
+    "config": {
+      "layers": [
+        {
+          "name": "0",
+          "value": 5e-323
+        }
+      ]
+    }
+  }
+]

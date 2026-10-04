@@ -65,13 +65,20 @@ export function plot(
 /** 数值 v 从值域 [min, max] 映射到绘图区 Y 坐标（Y 向下增长，所以最大值在上方）。 */
 export function yOf(p: Plot, v: number, min: number, max: number): number {
   if (max === min) return p.y0 + p.h / 2;
-  return p.y0 + p.h - ((v - min) / (max - min)) * p.h;
+  return finiteCoordinate(p.y0 + p.h - ((v - min) / (max - min)) * p.h);
 }
 
 /** 数值 v 从值域 [min, max] 映射到绘图区 X 坐标。 */
 export function xOf(p: Plot, v: number, min: number, max: number): number {
   if (max === min) return p.x0 + p.w / 2;
-  return p.x0 + ((v - min) / (max - min)) * p.w;
+  return finiteCoordinate(p.x0 + ((v - min) / (max - min)) * p.w);
+}
+
+// Explicit maxima can permit extrapolation beyond a valid finite domain.
+// Preserve finite results exactly; reject arithmetic overflow before emission.
+function finiteCoordinate(value: number): number {
+  if (!Number.isFinite(value)) throw new RangeError('SVG mapped coordinates must be finite');
+  return value;
 }
 
 /** 生成 SVG 根标签。 */
