@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import ts from 'typescript'
+import { transformSync } from 'esbuild'
 import type { Figure } from '../../src/core/plotter.js'
 
 // These tests inspect the options and lifecycle calls sent to ECharts. They do
@@ -89,18 +89,21 @@ export function createBrowserHarness(sourceRoot: string = process.cwd()) {
     },
   }
 
-  // Compile the actual source with the project's declared TypeScript dev
-  // dependency. A narrow local resolver replaces only ECharts and evaluates the
-  // real palette. Dependencies and browser globals are isolated per harness.
+  // Compile the actual source with the project's declared esbuild dev
+  // dependency. Type checking remains in `npm run lint`. A narrow local resolver
+  // replaces only ECharts and evaluates the real palette. Dependencies and
+  // browser globals are isolated per harness.
   // sourceRoot defaults to the repository root used by `npm test` and `bun test`.
   function evaluate(path: string, require: (specifier: string) => any): any {
     const filename = resolve(sourceRoot, path)
-    const { outputText } = ts.transpileModule(readFileSync(filename, 'utf8'), {
-      fileName: filename,
-      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+    const { code } = transformSync(readFileSync(filename, 'utf8'), {
+      sourcefile: filename,
+      loader: 'ts',
+      target: 'es2022',
+      format: 'cjs',
     })
     const module = { exports: {} }
-    const execute = new Function('require', 'module', 'exports', 'window', 'setInterval', 'clearInterval', outputText)
+    const execute = new Function('require', 'module', 'exports', 'window', 'setInterval', 'clearInterval', code)
     execute(require, module, module.exports, window, timers.setInterval, timers.clearInterval)
     return module.exports
   }
