@@ -335,6 +335,12 @@ npm run dev         # 开发服务器 (Vite)
 `npm pack --ignore-scripts` 与系统 `tar`，不发布包或下载依赖；先验证无运行时依赖的 SVG
 入口，再为统一入口连接已安装的 ECharts。浏览器真实渲染不属于这些无头回归检查。
 
+Native dependency acceptance is an explicit, separate check: after building, run
+`node --test tests/native-canvas-runtime.test.mjs`. See the
+[native canvas verification](docs/verification-native-canvas-2026-10-04.md) for
+prerequisites, the tested Node matrix, and the boundary between pure SVG, direct
+ECharts server export, and still-separate browser acceptance.
+
 ---
 
 ## 📌 技术栈
