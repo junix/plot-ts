@@ -8,21 +8,22 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/plot-ts.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/plot-ts.js"
     },
     "./svg": {
-      "import": "./dist/plot-ts.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/svg/index.d.ts",
+      "import": "./dist/svg.js"
     }
   },
   "scripts": {
-    "build": "npm run build:types && vite build",
+    "build": "vite build && vite build --config vite.svg.config.ts && npm run build:types",
     "build:types": "tsc --emitDeclarationOnly",
     "dev": "vite",
     "preview": "vite preview",
     "test": "node --import tsx --test tests/*.test.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:package": "npm run build && node --test tests/package-exports.test.mjs"
   },
   "peerDependencies": {
     "echarts": ">=5.0.0"
@@ -51,5 +52,8 @@
     "echarts": "^6.1.0",
     "plotly.js": "^3.7.0",
     "recharts": "^3.10.1"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

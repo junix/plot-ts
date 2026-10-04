@@ -129,6 +129,22 @@ fig.heatmap([[0, 1], [2, 3]], ['A', 'B'], ['Top', 'Bottom'], { colormap: 'plasma
 ```
 
 ### 服务端 SVG 渲染
+
+`plot-ts/svg` 是独立的纯 SVG 入口，导出 `figure`、`SvgFigure` 和图表类型。
+该入口加载与渲染时不需要 DOM 或 ECharts；包的现有安装依赖保持不变。
+统一入口 `plot-ts` 继续导出浏览器 `figure` 和 `svg` 命名空间。
+两个入口分别打包，不保证 `svg.SvgFigure` 与 `plot-ts/svg` 的 `SvgFigure` 构造函数
+具有同一对象身份。每个消费模块建议统一使用一个入口；`instanceof` 检查应使用
+创建该实例的入口所导出的类。
+
+```typescript
+import { figure } from 'plot-ts/svg'
+
+const report = figure({ width: 800, height: 500 })
+  .bar({ categories: ['A'], series: [{ values: [10] }] })
+  .render()
+```
+
 ```typescript
 // Node.js 环境，不需要浏览器
 import { svg } from 'plot-ts'
@@ -287,10 +303,16 @@ plot-ts/
 ## 🔧 命令
 
 ```bash
-npm run build       # 构建 + 类型声明
+npm test            # 源码回归测试
 npm run lint        # TypeScript 类型检查
+npm run build       # 浏览器 ESM/UMD/IIFE + 独立 SVG ESM + 类型声明
+npm run test:package # 重新构建、打包，再在干净的消费项目中检查导出/类型/渲染
 npm run dev         # 开发服务器 (Vite)
 ```
+
+提交前运行 `npm test`、`npm run lint` 和 `npm run test:package`。包级检查使用本地
+`npm pack --ignore-scripts` 与系统 `tar`，不发布包或下载依赖；先验证无运行时依赖的 SVG
+入口，再为统一入口连接已安装的 ECharts。浏览器真实渲染不属于这些无头回归检查。
 
 ---
 
@@ -301,7 +323,7 @@ npm run dev         # 开发服务器 (Vite)
 | 浏览器渲染 | ECharts 6.x | 交互、动画、性能优秀 |
 | SVG 渲染 | 纯函数实现 | 参考 ppt-gen 架构，零依赖 |
 | 类型系统 | TypeScript 7.x | exactOptionalPropertyTypes |
-| 构建工具 | Vite 4.x | ESM/UMD/IIFE 三格式 |
+| 构建工具 | Vite 8.x | 浏览器 ESM/UMD/IIFE + 独立 SVG ESM |
 | 设计系统 | 4 色原则 + 透明度分层 | 参考麦肯锡 ppt-gen |
 
 ---
