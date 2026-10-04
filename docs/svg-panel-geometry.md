@@ -28,7 +28,7 @@ inequalities are strict: equality would leave a zero-sized drawable region.
 | --- | --- | --- |
 | Column (`bar`) | >10px; >38px with `yAxis: true` | >46px; >32px with `labels: false` |
 | Line | >10px; >38px with `yAxis: true` | >46px |
-| Scatter | >20px; >40px with `yAxis: true` | >34px |
+| Scatter | >20px; >40px with `yAxis: true`; larger for large radii | >34px; larger for large radii |
 | Heatmap | >20px, using the actual bounded label gutter | >4px; >26px when `xLabels` is supplied, including `[]` |
 | Waterfall | >60px | >60px |
 | Donut | >40px | >40px |
@@ -77,7 +77,9 @@ serializer rounds most coordinates to two decimals. Positive extents just
 above a boundary can still serialize to zero or coincident coordinates; their
 bytes are deliberately unchanged. No rounding-based minimum is added.
 
-Label text, fixed-size markers and strokes may need more room than these bounds.
+Scatter circles now reserve marker-aware insets and validate their serialized
+bounds; see [scatter marker bounds](svg-scatter-bounds.md). Other charts' label
+text, fixed-size markers and strokes may need more room than these bounds.
 Heatmap cell count, other charts' text fitting, title fitting, extreme numeric
 data domains, arbitrary arithmetic overflow elsewhere, and donut `holeRatio`
 validation remain separate concerns. The checks do not rescale geometry, clamp

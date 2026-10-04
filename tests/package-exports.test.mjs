@@ -202,6 +202,16 @@ const panelGeometryChecks = `
         .heatmap({ data: [[1]] }).heatmap({ data: [[2]] }).render(), /panel positions/);
     }
     assert.doesNotThrow(() => panelFigure({ width: 1, height: 1, title: 'Title' }).render());
+    const scatter = panelFigure({ width: 100, height: 80 }).scatter({ points: [
+      { x: 0, y: 0, size: 15 }, { x: 1, y: 10, size: 15 },
+    ] }).render();
+    const marks = [...scatter.matchAll(/<circle[^>]*cx="([^"]+)" cy="([^"]+)" r="([^"]+)"/g)];
+    assert.equal(marks.length, 2);
+    for (const [, cx, cy, radius] of marks) {
+      assert.ok(+radius <= +cx && +radius <= 100 - +cx && +radius <= +cy && +radius <= 80 - +cy);
+      assert.equal(+radius, 15);
+    }
+    assert.throws(() => panelFigure({ width: 30, height: 80 }).scatter({ points: [{ x: 0, y: 0, size: 15 }] }).render(), RangeError);
 `;
 
 test('packed SVG entry enforces panel geometry for all ten chart families', () => {

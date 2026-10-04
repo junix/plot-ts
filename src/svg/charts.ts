@@ -305,7 +305,7 @@ export function renderLine(c: LineChart, width: number, height: number, theme?: 
 
 export interface ScatterChart {
   type: 'scatter';
-  /** Nonfinite coordinate pairs are omitted; rendered pairs require a finite non-negative size. */
+  /** Nonfinite coordinate pairs are omitted; size is a finite non-negative circle radius in pixels. */
   points: Array<{ x: number; y: number; size?: number }>;
   unit?: string;
   yAxis?: boolean;
@@ -315,14 +315,8 @@ export interface ScatterChart {
 export function renderScatter(c: ScatterChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
-  const p = drawablePlot(c.type, width, height, {
-    top: 10,
-    right: 10,
-    bottom: 24,
-    left: showAxis ? 30 : 10,
-  });
-
-  // Only finite coordinate pairs contribute to either domain.
+  // Only finite coordinate pairs contribute to either domain or marker bounds.
+  let maxRadius = 0;
   let xMin = Infinity;
   let xMax = -Infinity;
   let yMin = Infinity;
@@ -333,40 +327,82 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
     if (!Number.isFinite(size) || size < 0) {
       throw new RangeError('Scatter size must be finite and non-negative for finite coordinate pairs');
     }
+    maxRadius = Math.max(maxRadius, size);
     xMin = Math.min(xMin, pt.x);
     xMax = Math.max(xMax, pt.x);
     yMin = Math.min(yMin, pt.y);
     dataMax = Math.max(dataMax, pt.y);
   }
+  // Circles have no stroke. Reserve their radius without changing the domain,
+  // point order or radius. Enlarge only insufficient legacy margins; 0.01px
+  // covers the two independent 0.005px rounding errors in center and radius.
+  const inset = (minimum: number) => maxRadius > minimum ? maxRadius + 0.01 : minimum;
+  let p = drawablePlot(c.type, width, height, {
+    top: inset(10), right: inset(10), bottom: inset(24), left: inset(showAxis ? 30 : 10),
+  });
   if (xMin === Infinity) xMin = xMax = yMin = dataMax = 0;
   const yMax = niceUpperBound(c.type, dataMax);
   assertFiniteDomain(c.type, 'x', xMin, xMax);
   assertFiniteDomain(c.type, 'y', yMin, yMax);
 
-  const { color } = seriesTone(0, undefined, theme);
-  const circles: Html[] = [];
-
-  c.points.forEach((pt, i) => {
-    if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return;
-    const px = xOf(p, pt.x, xMin, xMax);
-    const py = yOf(p, pt.y, yMin, yMax);
-    const size = pt.size ?? 4;
-
-    circles.push(h('circle', {
-      class: 'plt-fade',
-      style: `--i:${i}`,
-      cx: n(px),
-      cy: n(py),
-      r: n(size),
-      fill: color,
-      opacity: 0.7,
-    }));
+  const mapMarkers = () => c.points.flatMap((pt, i) => {
+    if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return [];
+    return [{ i, cx: n(xOf(p, pt.x, xMin, xMax)), cy: n(yOf(p, pt.y, yMin, yMax)), r: n(pt.size ?? 4) }];
   });
+  const bounds = (mark: ReturnType<typeof mapMarkers>[number]) => ({
+    x: scatterExtentBounds(mark.cx, mark.r, width), y: scatterExtentBounds(mark.cy, mark.r, height),
+  });
+  const fits = (bound: ReturnType<typeof bounds>) => bound.x.low && bound.x.high && bound.y.low && bound.y.high;
+  let markers = mapMarkers();
+  const initialBounds = markers.map(bounds);
+  if (!initialBounds.every(fits)) {
+    // A radius exactly equal to a legacy inset can still clip when its center
+    // rounds outward at a fractional panel edge. Retry only overflowing sides;
+    // already-contained output (including exact decimal edges) is kept.
+    const safeInset = (minimum: number, overflow: boolean) => overflow ? Math.max(minimum, maxRadius + 0.01) : minimum;
+    p = drawablePlot(c.type, width, height, {
+      top: safeInset(p.inset.top, initialBounds.some(b => !b.y.low)),
+      right: safeInset(p.inset.right, initialBounds.some(b => !b.x.high)),
+      bottom: safeInset(p.inset.bottom, initialBounds.some(b => !b.y.high)),
+      left: safeInset(p.inset.left, initialBounds.some(b => !b.x.low)),
+    });
+    markers = mapMarkers();
+    if (!markers.map(bounds).every(fits)) {
+      throw new RangeError('SVG scatter markers must fit within the panel after coordinate serialization; increase the panel size or reduce marker sizes');
+    }
+  }
+
+  const { color } = seriesTone(0, undefined, theme);
+  const circles = markers.map(({ i, cx, cy, r }) => h('circle', {
+    class: 'plt-fade',
+    style: `--i:${i}`,
+    cx,
+    cy,
+    r,
+    fill: color,
+    opacity: 0.7,
+  }));
 
   return svg(width, height, join(
     showAxis ? gridLines(p, yMin, yMax, 4, theme) : '',
     ...circles,
   ));
+}
+
+/** Compare the emitted decimal geometry exactly, including scientific notation.
+ * Subtraction can falsely reject safe edges (40.01 - 30.01 < 10); an epsilon
+ * can instead hide true clipping or a lost inset at huge finite dimensions.
+ */
+function scatterExtentBounds(center: string, radius: string, extent: number): { low: boolean; high: boolean } {
+  const decimal = (value: string): { coefficient: bigint; exponent: number } => {
+    const [mantissa, power = '0'] = value.split('e');
+    const [whole, fraction = ''] = mantissa!.split('.');
+    return { coefficient: BigInt(whole! + fraction), exponent: Number(power) - fraction.length };
+  };
+  const values = [decimal(center), decimal(radius), decimal(String(extent))];
+  const exponent = Math.min(...values.map(value => value.exponent));
+  const [c, r, end] = values.map(value => value.coefficient * 10n ** BigInt(value.exponent - exponent));
+  return { low: r! <= c!, high: c! + r! <= end! };
 }
 
 // ───────────────────────────────────────────────────────────────
