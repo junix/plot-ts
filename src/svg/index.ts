@@ -52,7 +52,9 @@ export type Chart =
   | PyramidChart;
 
 export interface SvgFigureOptions {
+  /** Finite positive canvas width; each chart also needs a positive drawable area. */
   width?: number;
+  /** Finite positive canvas height; a nonempty figure title reserves 40 pixels. */
   height?: number;
   title?: string;
   accent?: AccentName;
@@ -212,6 +214,9 @@ export class SvgFigure {
     return join(...this.charts.map((chart, index) => {
       const x = (index % columns) * (panelWidth + this.gap);
       const y = Math.floor(index / columns) * (panelHeight + this.gap);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        throw new RangeError('SVG grid panel positions must be finite; reduce the figure size or gap');
+      }
       return h('g', {
         'data-panel-index': index,
         'data-chart-type': chart.type,

@@ -32,12 +32,11 @@ for (const count of [1, 2, 4]) {
 }
 
 test('zero pyramid layers remain centered across panel sizes and escaped labels survive', () => {
-  for (const [width, height] of [[160, 120], [500, 800], [640, 360]] as const) {
+  for (const [width, height] of [[201, 120], [500, 800], [640, 360]] as const) {
     const output = render([{ name: 'A<&', value: 0 }], width, height);
     assert.doesNotMatch(output, /NaN|Infinity/);
     const rect = rectangles(output)[0]!;
-    // Below 200px, fixed insets collapse the plot width to zero at x=100.
-    assert.equal(Number(rect.x), 100 + Math.max(0, width - 200) / 2);
+    assert.equal(Number(rect.x), width / 2);
     assert.equal(rect.width, '0');
     assert.match(output, />A&lt;&amp;<\/text>/);
   }
@@ -87,5 +86,12 @@ test('zero pyramids compose and render deterministically without mutating layers
 test('an unrepresentable automatic nice maximum fails clearly instead of producing invalid geometry', () => {
   for (const value of [Number.MIN_VALUE, Number.MAX_VALUE]) {
     assert.throws(() => render([{ name: 'extreme', value }]), { name: 'RangeError', message: 'Pyramid maximum must be finite and positive' });
+  }
+});
+
+
+test('zero pyramid values do not bypass the positive drawable panel bounds', () => {
+  for (const width of [160, 200]) {
+    assert.throws(() => render([{ name: 'zero', value: 0 }], width, 120), RangeError);
   }
 });

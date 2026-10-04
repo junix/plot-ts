@@ -45,6 +45,7 @@ export interface ColumnChart {
 }
 
 export function renderColumn(c: ColumnChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   const stacked = !!c.stacked;
   const showLabels = c.labels !== false;
   const showAxis = !!c.yAxis;
@@ -74,7 +75,7 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
   const max = rawMax <= min ? min + 1 : rawMax;
 
   // 定义绘图区留白
-  const p = plot(width, height, {
+  const p = drawablePlot(c.type, width, height, {
     top: showLabels ? 22 : 8,
     right: 8,
     bottom: 24,
@@ -95,6 +96,12 @@ export function renderColumn(c: ColumnChart, width: number, height: number): Htm
         return plot(width, height, { ...p.inset, left: p.inset.left + pad, right: p.inset.right + pad });
       })()
     : p;
+
+  // Recentring can lose a small positive data width at very large finite
+  // panel sizes. Empty categories intentionally retain the old empty plot.
+  if (c.categories.length > 0 && (!Number.isFinite(finalPlot.w) || finalPlot.w <= 0)) {
+    throw new RangeError('SVG column recentered drawable width must be finite and positive; reduce the panel size');
+  }
 
   const band = finalPlot.w / Math.max(1, c.categories.length);
   const barW = Math.min(BAR_MAX, (band * 0.56) / groupCount);
@@ -189,8 +196,9 @@ export interface LineChart {
 }
 
 export function renderLine(c: LineChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
-  const p = plot(width, height, {
+  const p = drawablePlot(c.type, width, height, {
     top: 22,
     right: 8,
     bottom: 24,
@@ -291,8 +299,9 @@ export interface ScatterChart {
 }
 
 export function renderScatter(c: ScatterChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
-  const p = plot(width, height, {
+  const p = drawablePlot(c.type, width, height, {
     top: 10,
     right: 10,
     bottom: 24,
@@ -405,6 +414,7 @@ function heatmapLabel(x: number, y: number, label: string, budget: number, ancho
 }
 
 export function renderHeatmap(c: HeatmapChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   const palette = heatmapPalette(c.colormap);
   const rows = c.data.length;
   const cols = c.data[0]?.length || 0;
@@ -418,19 +428,18 @@ export function renderHeatmap(c: HeatmapChart, width: number, height: number): H
       }
     }
   }
-  if (rows === 0 || cols === 0) return '';
-
   const yLabels = c.yLabels?.slice(0, rows);
   const longestY = yLabels?.reduce((length, label) => Math.max(length, label.length), 0) ?? 0;
   const labelW = Math.min(longestY * 7 + 10, Math.max(10, (width - 10) * 0.4));
   const labelH = c.xLabels ? 24 : 2;
 
-  const p = plot(width, height, {
+  const p = drawablePlot(c.type, width, height, {
     top: 2,
     right: 10,
     bottom: labelH,
     left: labelW,
   });
+  if (rows === 0 || cols === 0) return '';
 
   const cellW = p.w / cols;
   const cellH = p.h / rows;
@@ -501,6 +510,7 @@ export interface WaterfallChart {
 }
 
 export function renderWaterfall(c: WaterfallChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   if (c.categories.length !== c.values.length) {
     throw new RangeError('Waterfall categories and values must have equal lengths');
   }
@@ -510,7 +520,7 @@ export function renderWaterfall(c: WaterfallChart, width: number, height: number
     }
   }
 
-  const p = plot(width, height, { top: 30, right: 20, bottom: 30, left: 40 });
+  const p = drawablePlot(c.type, width, height, { top: 30, right: 20, bottom: 30, left: 40 });
 
   // 计算累计值
   let runningTotal = 0;
@@ -595,6 +605,7 @@ export interface DonutChart {
 }
 
 export function renderDonut(c: DonutChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   for (const item of c.items) {
     if (!Number.isFinite(item.value)) {
       throw new RangeError('Donut values must be finite');
@@ -607,6 +618,7 @@ export function renderDonut(c: DonutChart, width: number, height: number): Html 
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 20;
+  assertPanelRadius(c.type, r, 40);
   const holeR = r * (c.holeRatio ?? 0.5);
 
   const total = c.items.reduce((sum, item) => sum + item.value, 0);
@@ -684,6 +696,7 @@ export interface RadarChart {
 }
 
 export function renderRadar(c: RadarChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   for (const series of c.series) {
     // Sparse or trailing missing entries retain the existing zero fallback.
     if (series.values.some(value => !Number.isFinite(value))) {
@@ -702,6 +715,7 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 40;
+  assertPanelRadius(c.type, r, 80);
   const axisCount = c.axes.length;
   // 所有系列和可见轴共享默认上界，保留单系列形状并使系列之间可比较。
   const inferred = niceCeil(maxOf(c.series.flatMap(s => s.values.slice(0, axisCount))));
@@ -716,6 +730,9 @@ export function renderRadar(c: RadarChart, width: number, height: number): Html 
   // 背景网格圆
   for (let i = 1; i <= 3; i++) {
     const gridR = (r * i) / 3;
+    if (!Number.isFinite(gridR) || gridR <= 0) {
+      throw new RangeError('SVG radar grid radii must be finite and positive; reduce the panel size');
+    }
     circles.push(h('circle', {
       cx: n(cx),
       cy: n(cy),
@@ -792,6 +809,7 @@ export interface GaugeChart {
 }
 
 export function renderGauge(c: GaugeChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   if (!Number.isFinite(c.value)) {
     throw new RangeError('Gauge value must be finite');
   }
@@ -816,6 +834,7 @@ export function renderGauge(c: GaugeChart, width: number, height: number): Html 
   const cx = width / 2;
   const cy = height * 0.7;
   const r = Math.min(width, height) * 0.4;
+  assertPanelRadius(c.type, r, 0);
   const ratio = Math.min(1, Math.max(0, c.value / max));
 
   const startAngle = Math.PI * 0.8;
@@ -890,13 +909,14 @@ export interface SlopeChart {
 }
 
 export function renderSlope(c: SlopeChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   for (const item of c.items) {
     if (!Number.isFinite(item.left) || !Number.isFinite(item.right)) {
       throw new RangeError('Slope endpoints must be finite');
     }
   }
 
-  const p = plot(width, height, { top: 30, right: 80, bottom: 30, left: 80 });
+  const p = drawablePlot(c.type, width, height, { top: 30, right: 80, bottom: 30, left: 80 });
 
   const allValues = c.items.flatMap(i => [i.left, i.right]);
   const min = Math.min(0, Math.min(...allValues));
@@ -972,11 +992,12 @@ export interface PyramidChart {
 }
 
 export function renderPyramid(c: PyramidChart, width: number, height: number): Html {
+  assertPanelDimensions(c.type, width, height);
   if (c.layers.some(layer => !Number.isFinite(layer.value) || layer.value < 0)) {
     throw new RangeError('Pyramid values must be finite and non-negative');
   }
 
-  const p = plot(width, height, { top: 10, right: 100, bottom: 10, left: 100 });
+  const p = drawablePlot(c.type, width, height, { top: 10, right: 100, bottom: 10, left: 100 });
 
   const observedMax = Math.max(0, ...c.layers.map(l => l.value));
   const max = observedMax === 0 ? 1 : niceCeil(observedMax);
@@ -1025,6 +1046,37 @@ export function renderPyramid(c: PyramidChart, width: number, height: number): H
 // ───────────────────────────────────────────────────────────────
 //  辅助函数
 // ───────────────────────────────────────────────────────────────
+
+/** Validate direct renderers too, before a chart can emit an invalid viewport. */
+function assertPanelDimensions(chart: string, width: number, height: number): void {
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+    throw new RangeError(`SVG ${chart} panel width and height must be finite positive numbers`);
+  }
+}
+
+/** Use the renderer's actual insets, without changing any supported geometry. */
+function drawablePlot(chart: string, width: number, height: number, inset: Parameters<typeof plot>[2]): ReturnType<typeof plot> {
+  const p = plot(width, height, inset);
+  assertDrawablePlot(chart, p);
+  return p;
+}
+
+function assertDrawablePlot(chart: string, p: ReturnType<typeof plot>): void {
+  if (!Number.isFinite(p.w) || p.w <= 0 || !Number.isFinite(p.h) || p.h <= 0) {
+    throw new RangeError(
+      `SVG ${chart} drawable width and height must be positive after margins; ` +
+      `panel width must exceed ${p.inset.left + p.inset.right} pixels and height must exceed ${p.inset.top + p.inset.bottom} pixels`,
+    );
+  }
+}
+
+function assertPanelRadius(chart: string, radius: number, margin: number): void {
+  if (!Number.isFinite(radius) || radius <= 0) {
+    throw new RangeError(
+      `SVG ${chart} radius must be positive; panel width and height must exceed ${margin} pixels`,
+    );
+  }
+}
 
 function sumSeries(series: ColumnChart['series'], idx: number): number {
   let s = 0;

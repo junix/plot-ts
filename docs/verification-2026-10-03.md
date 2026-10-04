@@ -402,3 +402,16 @@ remain open, with concrete inputs in the layout policy's follow-up section.
 It also does not certify browser text metrics, tooltip behavior, browser bundle
 visuals, or CI. XML parsing and successful rasterization alone did not detect
 those known numeric/geometry defects.
+
+## Later SVG panel geometry checkpoint (2026-10-04)
+
+The formerly open small-panel and slope/pyramid grid-collapse issues above are
+now covered by chart-specific computed-geometry guards based on published
+`fc89bebc98b6734368d9c528b5a99708080b1bf8`. See the
+[panel contract](svg-panel-geometry.md) and
+[full panel verification](verification-svg-panel-geometry-2026-10-04.md).
+The final gates pass 693 source tests and 7 packed-export tests, with 228 exact
+pre-change SVG hashes, 217 byte/pixel controls and 314 XML parses. Empty chart
+configurations intentionally follow the same bounds; no-chart figures stay
+unrestricted beyond finite positive dimensions. Tiny positive serialization,
+extreme numeric data domains and browser/CI acceptance remain separate limits.

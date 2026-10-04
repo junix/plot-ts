@@ -97,6 +97,51 @@ test('packed SVG heatmaps fit long labels while preserving full escaped titles',
   assert.match(output, /Packed heatmap layout passed/)
 })
 
+const panelGeometryChecks = `
+    const panels = [
+      ['bar', { categories: ['A'], series: [{ values: [1] }] }, { categories: [], series: [] }, 10, 46],
+      ['line', { x: [0, 1], series: [{ y: [1, 2] }] }, { x: [], series: [] }, 10, 46],
+      ['scatter', { points: [{ x: 1, y: 2 }] }, { points: [] }, 20, 34],
+      ['heatmap', { data: [[1]] }, { data: [] }, 20, 4],
+      ['waterfall', { categories: ['A'], values: [1] }, { categories: [], values: [] }, 60, 60],
+      ['donut', { items: [{ name: 'A', value: 1 }] }, { items: [] }, 40, 40],
+      ['radar', { axes: [{ name: 'A' }], series: [{ values: [1] }] }, { axes: [], series: [] }, 80, 80],
+      ['gauge', { value: 1, max: 2 }, { value: 0, bands: [] }, 0, 0],
+      ['slope', { items: [{ name: 'A', left: 1, right: 2 }] }, { items: [] }, 160, 60],
+      ['pyramid', { layers: [{ name: 'A', value: 1 }] }, { layers: [] }, 200, 20],
+    ];
+    for (const [method, data, empty, minWidth, minHeight] of panels) {
+      for (const config of [data, empty]) {
+        assert.throws(() => panelFigure({ width: minWidth, height: 300 })[method](config).render(), RangeError);
+        assert.throws(() => panelFigure({ width: 400, height: minHeight + 40, title: 'Title' })[method](config).render(), RangeError);
+        for (const title of ['', 'Title']) {
+          const result = panelFigure({ width: minWidth + .02, height: minHeight + .02 + (title ? 40 : 0), title })[method](config).render();
+          assert.doesNotMatch(result, /NaN|Infinity/);
+          const grid = panelFigure({ width: 320, height: 120 + (title ? 40 : 0), gap: 0, title })[method](config)[method](config);
+          if (minWidth >= 160) assert.throws(() => grid.render(), RangeError);
+          else assert.doesNotThrow(() => grid.render());
+        }
+      }
+    }
+    assert.throws(() => panelFigure({ width: Number.MAX_VALUE, height: Number.MAX_VALUE }).radar({ axes: [], series: [] }).render(), /grid radii/);
+    assert.throws(() => panelFigure({ width: 1e20, height: 100 }).bar({ categories: ['A'], series: [{ values: [1] }] }).render(), /drawable width/);
+    for (const columns of [1, 2]) {
+      assert.throws(() => panelFigure({ width: Number.MAX_VALUE, height: Number.MAX_VALUE, gap: Number.MAX_VALUE / 2, columns })
+        .heatmap({ data: [[1]] }).heatmap({ data: [[2]] }).render(), /panel positions/);
+    }
+    assert.doesNotThrow(() => panelFigure({ width: 1, height: 1, title: 'Title' }).render());
+`;
+
+test('packed SVG entry enforces panel geometry for all ten chart families', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure as panelFigure } from 'plot-ts/svg';
+    ${panelGeometryChecks}
+    console.log('Packed panel geometry passed');
+  `)
+  assert.match(output, /Packed panel geometry passed/)
+})
+
 test('packed declarations resolve the SVG entry in a clean NodeNext consumer', () => {
   writeFileSync(join(consumer, 'svg.ts'), `
     import { figure, SvgFigure, type SvgFigureOptions } from 'plot-ts/svg';
@@ -129,6 +174,8 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     assert.ok(svg.figure() instanceof svg.SvgFigure);
     assert.ok(svg.figure().render().startsWith('<svg'));
     assert.ok(svgFigure() instanceof SvgFigure);
+    const panelFigure = svg.figure;
+    ${panelGeometryChecks}
     console.log('Root package smoke passed');
   `)
   assert.match(output, /Root package smoke passed/)
