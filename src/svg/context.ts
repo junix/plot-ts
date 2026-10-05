@@ -8,6 +8,9 @@ import type { Html } from '../util/html.js';
 import { h, join, text, n } from '../util/html.js';
 import { INK, INK_ALPHA, NEUTRAL, ACCENTS, type AccentName } from '../style/tokens.js';
 
+/** Shared native SVG font stack; legacy wrapper bytes remain identical. */
+export const SVG_FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
 /** 绘图区位置 */
 export interface Plot {
   x0: number;

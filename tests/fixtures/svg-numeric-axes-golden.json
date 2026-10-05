@@ -1,0 +1,187 @@
+{
+  "profile": "numeric-axes-v1",
+  "fixtures": "synthetic",
+  "entries": [
+    {
+      "name": "pm-grouped",
+      "theme": "legacy",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "2fdc66ae941cafa838b62888a4deb31fd9875f01e49f5e38243f860d6b16d391",
+        "node22_22_1": "2fdc66ae941cafa838b62888a4deb31fd9875f01e49f5e38243f860d6b16d391"
+      }
+    },
+    {
+      "name": "signed-stacked",
+      "theme": "legacy",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "f0b77cb6b6ae2ffd46e3e2c2114cf2a10ede0f8069edce069aa3605a974cee7a",
+        "node22_22_1": "f0b77cb6b6ae2ffd46e3e2c2114cf2a10ede0f8069edce069aa3605a974cee7a"
+      }
+    },
+    {
+      "name": "cjk-nullable-line-area",
+      "theme": "legacy",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "22b8c95b09156615d865051065a34c2d7563e7c305a823f11ce18ad45f74ca72",
+        "node22_22_1": "22b8c95b09156615d865051065a34c2d7563e7c305a823f11ce18ad45f74ca72"
+      }
+    },
+    {
+      "name": "scientific-scatter",
+      "theme": "legacy",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "44864e59e85e4dfb456baaf7a6bf11ecf2c5d037459bfebb624810aa20b3e582",
+        "node22_22_1": "d54c85a0bac9ee2616a3ed8a7fb1d6bcc28062458653ed339902364e8f59482e"
+      }
+    },
+    {
+      "name": "large-radius-scatter",
+      "theme": "legacy",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "3b8209a46682c7d94c02dc8872e4d8243d248eb39bca5fb1a7b7d7b4c117bcfe",
+        "node22_22_1": "3b8209a46682c7d94c02dc8872e4d8243d248eb39bca5fb1a7b7d7b4c117bcfe"
+      }
+    },
+    {
+      "name": "empty-column",
+      "theme": "legacy",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "9f2d31370dc28823b71fbeb521f471be21fd5ba3b5b62455e7e7c343fd512c16",
+        "node22_22_1": "9f2d31370dc28823b71fbeb521f471be21fd5ba3b5b62455e7e7c343fd512c16"
+      }
+    },
+    {
+      "name": "pm-grouped",
+      "theme": "sage",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "a3acf807d0757c1c015660a8317d083a126227cbdf928fb0af96cac887824a82",
+        "node22_22_1": "a3acf807d0757c1c015660a8317d083a126227cbdf928fb0af96cac887824a82"
+      }
+    },
+    {
+      "name": "signed-stacked",
+      "theme": "sage",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "e7d84efc400425cc111dcfa15d4e14c07c84d69e4aca83c70514b41c6002b1db",
+        "node22_22_1": "e7d84efc400425cc111dcfa15d4e14c07c84d69e4aca83c70514b41c6002b1db"
+      }
+    },
+    {
+      "name": "cjk-nullable-line-area",
+      "theme": "sage",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "deb11b821a4691adcecdc7c0aac3f177e7e399e3a95cfa8d7f3613b8f8eb5a39",
+        "node22_22_1": "deb11b821a4691adcecdc7c0aac3f177e7e399e3a95cfa8d7f3613b8f8eb5a39"
+      }
+    },
+    {
+      "name": "scientific-scatter",
+      "theme": "sage",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "7563d2bfcbac52233611e8ae3598f4c6212becc5edca24c600ec91e3e1bfd982",
+        "node22_22_1": "bddf0944b04ee91ad3dfa068f4b5693a83588a1ec22ae1257f06febfa8bc01ed"
+      }
+    },
+    {
+      "name": "large-radius-scatter",
+      "theme": "sage",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "b398cfe2978e9d86216da7242a494a2a479934546c700d6e67479a35c83916d2",
+        "node22_22_1": "b398cfe2978e9d86216da7242a494a2a479934546c700d6e67479a35c83916d2"
+      }
+    },
+    {
+      "name": "empty-column",
+      "theme": "sage",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "b0bdba472315bbad7b4a47a440fb23cc388e5a3f3938ef50557252521928031d",
+        "node22_22_1": "b0bdba472315bbad7b4a47a440fb23cc388e5a3f3938ef50557252521928031d"
+      }
+    },
+    {
+      "name": "pm-grouped",
+      "theme": "sage-dark",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "9bb24171e03992f700b9f48e4490ece05d9ae4917f9555f4c0148a7461aa57f8",
+        "node22_22_1": "9bb24171e03992f700b9f48e4490ece05d9ae4917f9555f4c0148a7461aa57f8"
+      }
+    },
+    {
+      "name": "signed-stacked",
+      "theme": "sage-dark",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "2fe0ff512664416e9a70e0704a7d9a9f49d82a5cb86ca3eda7c41af3733cbcd0",
+        "node22_22_1": "2fe0ff512664416e9a70e0704a7d9a9f49d82a5cb86ca3eda7c41af3733cbcd0"
+      }
+    },
+    {
+      "name": "cjk-nullable-line-area",
+      "theme": "sage-dark",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "1082adfaf8fae13071eec9ddbadbfc025692221f8fdffe0849ee851851d5ef38",
+        "node22_22_1": "1082adfaf8fae13071eec9ddbadbfc025692221f8fdffe0849ee851851d5ef38"
+      }
+    },
+    {
+      "name": "scientific-scatter",
+      "theme": "sage-dark",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "4bffbf07f5bdd17d311bc76735ee304b046136b5d0608e753ca3ef8805860202",
+        "node22_22_1": "c91781bfeb73bcb24d484f863eee34cc0439fef651e9fa270e402b14b26b399d"
+      }
+    },
+    {
+      "name": "large-radius-scatter",
+      "theme": "sage-dark",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "9ddef2d698adc59941b2b0ea18fb4982f202387ce823cf44d886b88646948f3b",
+        "node22_22_1": "9ddef2d698adc59941b2b0ea18fb4982f202387ce823cf44d886b88646948f3b"
+      }
+    },
+    {
+      "name": "empty-column",
+      "theme": "sage-dark",
+      "width": 440,
+      "height": 320,
+      "sha256": {
+        "node24_19_0": "cd374de040af9c9f76d5129ffdf8714c3bbd577db11471e10d345b5626a0fb7b",
+        "node22_22_1": "cd374de040af9c9f76d5129ffdf8714c3bbd577db11471e10d345b5626a0fb7b"
+      }
+    }
+  ],
+  "runtime_note": "Native power/niceness arithmetic may differ by JavaScript runtime. Both exact resolved-domain variants are pinned; no domain or endpoint normalization."
+}

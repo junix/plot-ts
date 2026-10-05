@@ -35,7 +35,7 @@ export function renderWithSeriesLegend(
   const rows = Array.from(series, (s, index): LegendRow => {
     const field = `SVG ${chart} legend series[${index}].name`;
     const name = s?.name;
-    validateName(name, field);
+    validateSingleLineText(name, field);
     if (names.has(name)) throw new RangeError(`${field} must be exactly distinct from every other series name`);
     names.add(name);
 
@@ -95,7 +95,7 @@ export function renderWithSeriesLegend(
   return svg(width, height, join(body, legend));
 }
 
-function validateName(name: unknown, field: string): asserts name is string {
+export function validateSingleLineText(name: unknown, field: string, kind = 'name'): asserts name is string {
   if (typeof name !== 'string' || name.trim().length === 0) {
     throw new RangeError(`${field} must be a nonblank string`);
   }
@@ -108,7 +108,7 @@ function validateName(name: unknown, field: string): asserts name is string {
       throw new RangeError(`${field} must contain valid Unicode scalar and XML 1.0 text`);
     }
     if (cp === 0x09 || cp === 0x0a || cp === 0x0d || cp === 0x2028 || cp === 0x2029) {
-      throw new RangeError(`${field} must be a single-line name without tabs or line separators`);
+      throw new RangeError(`${field} must be a single-line ${kind} without tabs or line separators`);
     }
     scalars++;
     bytes += cp <= 0x7f ? 1 : cp <= 0x7ff ? 2 : cp <= 0xffff ? 3 : 4;

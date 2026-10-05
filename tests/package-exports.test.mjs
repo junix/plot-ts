@@ -28,6 +28,37 @@ function run(source) {
   })
 }
 
+const numericAxesChecks = `
+  const q = numericFigure({width:400,height:300}).scatter({ axes:'numeric-axes-v1', unit:'mol/L', xUnit:'s', points:[{x:0.01,y:0.00012},{x:0.03,y:0.00019}] });
+  const rendered = q.render();
+  assert.ok(rendered.includes('data-plot-axes="numeric-axes-v1"'));
+  assert.ok(rendered.includes('data-domain-min="0.01"'));
+  assert.ok(rendered.includes('data-plot-unit="y"'));
+  assert.ok(rendered.includes('data-plot-unit="x"'));
+  assert.equal(q.renderFrame(1600), rendered);
+  assert.equal(q.renderFrame(0, {reducedMotion:true}), rendered);
+  assert.ok(q.renderHtml().includes('mol/L'));
+  for(const method of ['bar','line','scatter']) {
+    const data = method === 'bar' ? {categories:['A'],series:[{values:[1]}]} : method === 'line' ? {x:[0,1],series:[{y:[1,2]}]} : {points:[{x:0,y:1}]};
+    assert.throws(()=>numericFigure()[method]({...data, axes:'numeric-axes'}).render(), /numeric-axes-v1/);
+    assert.throws(()=>numericFigure()[method]({...data, axes:'numeric-axes-v1', yAxis:false}).render(), /axis flags/);
+    assert.ok(numericFigure()[method]({...data, axes:'numeric-axes-v1'}).render().includes('data-plot-axes'));
+  }
+  assert.throws(()=>numericFigure().line({x:[0],series:[{y:[1]}],xUnit:'s'}).render(), /requires axes/);
+  const legacy = {categories:['A'],series:[{values:[2]}]};
+  assert.equal(numericFigure().bar(legacy).render(),numericFigure().bar({...legacy,axes:undefined,unit:null}).render());
+`;
+
+test('packed quantitative axes and literal units work without DOM or runtime dependencies', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import {figure as numericFigure} from 'plot-ts/svg';
+    ${numericAxesChecks}
+    console.log('Packed numeric axes passed');
+  `);
+  assert.match(output, /Packed numeric axes passed/);
+});
+
 test('packed exports include their JS and declarations, plus browser bundles', () => {
   const files = new Set(result.files.map(file => file.path))
   for (const entry of Object.values(manifest.exports)) {
@@ -235,6 +266,11 @@ test('packed declarations resolve the SVG entry in a clean NodeNext consumer', (
     figure({ theme: 'not-canonical' });
     const chart: SvgFigure = figure(options);
     const output: string = chart.bar({ categories: ['A'], series: [{ values: [2] }] }).render();
+    const axes: import('plot-ts/svg').NumericAxesProfile = 'numeric-axes-v1';
+    chart.scatter({points:[],axes,unit:'mol/L',xUnit:'s'});
+    chart.line({x:[],series:[],axes,unit:'mV',xUnit:'s'});
+    // @ts-expect-error Quantitative axes profiles are exact and versioned.
+    chart.bar({categories:[],series:[],axes:'numeric-axes'});
     chart.bar({ categories: ['甲'], legend: 'series-names-v1', series: [{ name: '实测', values: [1] }] });
     chart.line({ x: [0], legend: 'series-names-v1', series: [{ name: '实测', y: [1] }] });
     // @ts-expect-error Legend profile is exact and versioned.
@@ -338,6 +374,8 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     ${dataDomainChecks}
     const legendFigure = svg.figure;
     ${seriesLegendChecks}
+    const numericFigure = svg.figure;
+    ${numericAxesChecks}
     const panelFigure = svg.figure;
     ${panelGeometryChecks}
     console.log('Root package smoke passed');
@@ -351,6 +389,12 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     // @ts-expect-error Browser surface policy identifiers are exact and versioned.
     figure(document.body, { surfacePolicy: 'transparent' });
     const report: SvgFigure = svg.figure({ width: 400 });
+    const axes: svg.NumericAxesProfile = 'numeric-axes-v1';
+    report.line({ x: [0], series: [{y:[1]}], axes, unit:'件/日', xUnit:'s' });
+    // @ts-expect-error Column has no numeric X unit.
+    report.bar({categories:[],series:[],axes,xUnit:'s'});
+    // @ts-expect-error Quantitative axes profiles are exact and versioned.
+    report.scatter({points:[],axes:'numeric-axes'});
     const profile: svg.SeriesLegendProfile = 'series-names-v1';
     report.bar({ categories: [], legend: profile, series: [{ name: 'Full name', values: [] }] });
     report.line({ x: [], legend: profile, series: [{ name: 'Full name', y: [] }] });

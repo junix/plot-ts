@@ -18,6 +18,8 @@ export { SURFACE_POLICY_VERSION, SURFACE_POLICIES, parseSurfacePolicy, type Surf
 import { MotionTargetLimitError, SVG_MOTION_END_MS, SvgMotionPlan, svgMotionCss, type SvgFrameOptions } from './motion.js';
 export type { SvgFrameOptions } from './motion.js';
 export type { SeriesLegendProfile } from './series-legend.js';
+export type { NumericAxesProfile } from './numeric-axes.js';
+import { SVG_FONT_FAMILY } from './context.js';
 import type { Html } from '../util/html.js';
 import { esc, h, join } from '../util/html.js';
 import { generateFigureStyles, palette, type AccentName } from '../style/tokens.js';
@@ -315,7 +317,7 @@ export class SvgFigure {
   }
 
   private wrapSvg(content: Html, motion?: SvgMotionPlan): string {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}"${motion ? ' data-plot-motion="entry-v1"' : ''} style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${this.width}" height="${this.height}" viewBox="0 0 ${this.width} ${this.height}"${motion ? ' data-plot-motion="entry-v1"' : ''} style="font-family: ${SVG_FONT_FAMILY};">
   ${this.theme ? h('rect', { width: this.width, height: this.height, fill: surfaceFill(this.surfacePolicy, 'root', this.theme.tokens['--paper'], 'none'), 'data-plot-surface': 'paper' }) : ''}${content}
 </svg>`;
   }

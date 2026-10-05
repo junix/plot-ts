@@ -16,6 +16,7 @@ import { estimateTextWidth, fmt, maxOf, niceCeil, niceCeilForAxis } from '../uti
 import { assertFiniteDomain, assertFiniteTotal, niceUpperBound } from './numeric.js';
 import type { SvgMotionPlan } from './motion.js';
 import { renderWithSeriesLegend, type SeriesLegendProfile } from './series-legend.js';
+import { numericAxesEnabled, planNumericAxes, assertNumericAxisContains, type NumericAxesProfile } from './numeric-axes.js';
 import {
   plot,
   svg,
@@ -41,6 +42,8 @@ export interface ColumnChart {
   }>;
   /** Opt-in full names below this panel; omitted preserves the legacy rendering. */
   legend?: SeriesLegendProfile;
+  /** Opt-in truthful quantitative ticks and full literal units. */
+  axes?: NumericAxesProfile;
   unit?: string;
   stacked?: boolean;
   yAxis?: boolean;
@@ -58,9 +61,10 @@ export function renderColumn(c: ColumnChart, width: number, height: number, them
 
 function renderColumnBody(c: ColumnChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   assertPanelDimensions(c.type, width, height);
+  const numericAxes = numericAxesEnabled(c.type, c);
   const stacked = !!c.stacked;
   const showLabels = c.labels !== false;
-  const showAxis = !!c.yAxis;
+  const showAxis = numericAxes || !!c.yAxis;
 
   // Signed stacks grow independently on each side of zero. Only paired,
   // finite values participate in the domain, just as in the rendering loop.
@@ -89,6 +93,16 @@ function renderColumnBody(c: ColumnChart, width: number, height: number, theme?:
   const max = rawMax <= min ? min + 1 : rawMax;
   assertFiniteDomain(c.type, 'y', min, max);
 
+  if (numericAxes) {
+    let dataMin = 0;
+    if (stacked) dataMin = negativeStackMin;
+    else for (const series of c.series) for (let i = 0; i < c.categories.length; i++) {
+      const value = series.values[i];
+      if (typeof value === 'number' && Number.isFinite(value)) dataMin = Math.min(dataMin, value);
+    }
+    assertNumericAxisContains(c.type, min, max, dataMin, maxOf(totals), c.max);
+  }
+
   // 定义绘图区留白
   const p = drawablePlot(c.type, width, height, {
     top: showLabels ? 22 : 8,
@@ -101,16 +115,16 @@ function renderColumnBody(c: ColumnChart, width: number, height: number, theme?:
   const BAR_MAX = 64;
   const groupCount = stacked ? 1 : c.series.length;
   const MAX_BAND = (BAR_MAX * Math.max(1, groupCount)) / 0.42;
-  const rawBand = p.w / Math.max(1, c.categories.length);
-
-  // 如果带宽超过上限，就收窄绘图区并居中（两根柱的图是「居中一小簇」）
-  const finalPlot = rawBand > MAX_BAND
-    ? (() => {
-        const used = MAX_BAND * c.categories.length;
-        const pad = (p.w - used) / 2;
-        return plot(width, height, { ...p.inset, left: p.inset.left + pad, right: p.inset.right + pad });
-      })()
-    : p;
+  const recenter = (box: typeof p) => {
+    if (numericAxes && c.categories.length === 0) return box;
+    const rawBand = box.w / Math.max(1, c.categories.length);
+    if (rawBand <= MAX_BAND) return box;
+    const used = MAX_BAND * c.categories.length;
+    const pad = (box.w - used) / 2;
+    return plot(width, height, { ...box.inset, left: box.inset.left + pad, right: box.inset.right + pad });
+  };
+  const axes = numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [min, max], unit: c.unit, inset: p.inset, recenter, theme }) : undefined;
+  const finalPlot = axes?.plot ?? recenter(p);
 
   // Recentring can lose a small positive data width at very large finite
   // panel sizes. Empty categories intentionally retain the old empty plot.
@@ -148,6 +162,7 @@ function renderColumnBody(c: ColumnChart, width: number, height: number, theme?:
         x = (centers[ci] as number) - barW / 2;
         const upper = v < 0 ? negativeUpper : positiveUpper;
         const lower = v < 0 ? upper + v : upper - v;
+        if (numericAxes) assertNumericAxisContains(c.type, min, max, Math.min(upper, lower), Math.max(upper, lower));
         yTop = yOf(finalPlot, Math.max(upper, lower), min, max);
         barH = Math.abs(yOf(finalPlot, lower, min, max) - yOf(finalPlot, upper, min, max));
         if (v < 0) negativeUpper = lower;
@@ -193,11 +208,12 @@ function renderColumnBody(c: ColumnChart, width: number, height: number, theme?:
   labels.push(...labelRenderers.map(render => render()));
 
   return svg(width, height, join(
-    showAxis ? gridLines(finalPlot, min, max, 4, theme) : '',
-    baseline(finalPlot, min, max, theme),
+    axes ? axes.grid : showAxis ? gridLines(finalPlot, min, max, 4, theme) : '',
+    axes ? '' : baseline(finalPlot, min, max, theme),
     ...bars,
     categoryLabels(finalPlot, c.categories, theme),
     ...labels,
+    axes?.guides ?? '',
   ));
 }
 
@@ -216,7 +232,10 @@ export interface LineChart {
   }>;
   /** Opt-in full names below this panel; omitted preserves the legacy rendering. */
   legend?: SeriesLegendProfile;
+  /** Opt-in truthful quantitative ticks and full literal units. */
+  axes?: NumericAxesProfile;
   unit?: string;
+  xUnit?: string;
   yAxis?: boolean;
   labels?: boolean;
   max?: number;
@@ -230,8 +249,9 @@ export function renderLine(c: LineChart, width: number, height: number, theme?: 
 
 function renderLineBody(c: LineChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
-  const showAxis = !!c.yAxis;
-  const p = drawablePlot(c.type, width, height, {
+  const numericAxes = numericAxesEnabled(c.type, c);
+  const showAxis = numericAxes || !!c.yAxis;
+  let p = drawablePlot(c.type, width, height, {
     top: 22,
     right: 8,
     bottom: 24,
@@ -262,6 +282,9 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
   }
   if (xMin === Infinity) xMin = xMax = 0;
   assertFiniteDomain(c.type, 'x', xMin, xMax);
+  if (numericAxes) assertNumericAxisContains(c.type, min, max, dataMin, dataMax, c.max);
+  const axes = numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [min, max], x: [xMin, xMax], unit: c.unit, xUnit: c.xUnit, inset: p.inset, theme }) : undefined;
+  if (axes) p = axes.plot;
 
   const paths: Html[] = [];
   const areas: Html[] = [];
@@ -313,10 +336,11 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
   });
 
   return svg(width, height, join(
-    showAxis ? gridLines(p, min, max, 4, theme) : '',
-    baseline(p, min, max, theme),
+    axes ? axes.grid : showAxis ? gridLines(p, min, max, 4, theme) : '',
+    axes ? '' : baseline(p, min, max, theme),
     areas.join(''),
     paths.join(''),
+    axes?.guides ?? '',
   ));
 }
 
@@ -328,14 +352,18 @@ export interface ScatterChart {
   type: 'scatter';
   /** Nonfinite coordinate pairs are omitted; size is a finite non-negative circle radius in pixels. */
   points: Array<{ x: number; y: number; size?: number }>;
+  /** Opt-in truthful quantitative ticks and full literal units. */
+  axes?: NumericAxesProfile;
   unit?: string;
+  xUnit?: string;
   yAxis?: boolean;
   xAxis?: boolean;
 }
 
 export function renderScatter(c: ScatterChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   assertPanelDimensions(c.type, width, height);
-  const showAxis = !!c.yAxis;
+  const numericAxes = numericAxesEnabled(c.type, c);
+  const showAxis = numericAxes || !!c.yAxis;
   // Only finite coordinate pairs contribute to either domain or marker bounds.
   let maxRadius = 0;
   let xMin = Infinity;
@@ -365,6 +393,9 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
   const yMax = niceUpperBound(c.type, dataMax);
   assertFiniteDomain(c.type, 'x', xMin, xMax);
   assertFiniteDomain(c.type, 'y', yMin, yMax);
+  if (numericAxes) assertNumericAxisContains(c.type, yMin, yMax, yMin, dataMax);
+  const axes = numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [yMin, yMax], x: [xMin, xMax], unit: c.unit, xUnit: c.xUnit, inset: p.inset, radius: maxRadius, theme }) : undefined;
+  if (axes) p = axes.plot;
 
   const mapMarkers = () => c.points.flatMap((pt, i) => {
     if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return [];
@@ -376,6 +407,7 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
   const fits = (bound: ReturnType<typeof bounds>) => bound.x.low && bound.x.high && bound.y.low && bound.y.high;
   let markers = mapMarkers();
   const initialBounds = markers.map(bounds);
+  if (axes && !initialBounds.every(fits)) throw new RangeError('SVG scatter numeric-axes-v1 markers must fit after coordinate serialization');
   if (!initialBounds.every(fits)) {
     // A radius exactly equal to a legacy inset can still clip when its center
     // rounds outward at a fractional panel edge. Retry only overflowing sides;
@@ -404,12 +436,13 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
       fill: color,
       opacity: 0.7,
     });
-    return motion ? motion.fade(mark, scatterMotionRise(cy, r, height)) : mark;
+    return motion ? motion.fade(mark, scatterMotionRise(cy, r, axes?.motionBottom ?? height)) : mark;
   });
 
   return svg(width, height, join(
-    showAxis ? gridLines(p, yMin, yMax, 4, theme) : '',
+    axes ? axes.grid : showAxis ? gridLines(p, yMin, yMax, 4, theme) : '',
     ...circles,
+    axes?.guides ?? '',
   ));
 }
 

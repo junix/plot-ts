@@ -197,8 +197,36 @@ Names stay complete and in series order, or rendering rejects with a sizing/name
 error. The legend reserves space below each chart and remains static during entry
 motion. Omitted `legend` preserves the old output, including ignored series names.
 Legacy line colors distinguish at most three named series; use a canonical theme
-for four to eight. This does not add numeric axis ticks or units. Layout limits,
+for four to eight. Numeric ticks and units require the separate axes profile below. Layout limits,
 font caveats and validation are in [SVG series legends](docs/svg-series-legends.md).
+
+### SVG numeric axes and units
+
+Column, line and scatter charts can opt in to `axes: 'numeric-axes-v1'`.
+Columns receive numeric Y ticks; line and scatter receive numeric X and Y ticks.
+Existing `unit` then supplies a full literal Y-unit row; line/scatter also accept
+`xUnit`. Units are never inferred or converted.
+
+```typescript
+svg.figure({ width: 500, height: 330, theme: 'sage' })
+  .scatter({
+    axes: 'numeric-axes-v1', xUnit: 's', unit: 'mol/L',
+    points: [
+      { x: 0.01, y: 0.00012 },
+      { x: 0.02, y: 0.00019 },
+      { x: 0.03, y: 0.00015 },
+    ],
+  })
+  .render();
+```
+
+The profile uses the actual native domains, at most six ticks per axis, and
+complete exact-value numeric text. Full units and required ticks either fit or
+rendering rejects; there is no ellipsis, silent conversion or hidden scale offset.
+Guides stay static during entry motion and compose with named-series legends.
+Omitting the profile preserves old bytes and the old axis/unit behavior.
+Approximate fonts, domain and layout limits, option conflicts and the unchanged
+machine-provider-v1 boundary are documented in [SVG numeric axes](docs/svg-numeric-axes.md).
 
 ### SVG 多图网格
 
