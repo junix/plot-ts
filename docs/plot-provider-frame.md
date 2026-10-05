@@ -117,8 +117,14 @@ Trusted launchers must still clear `NODE_OPTIONS`/`NODE_PATH` before startup.
 
 Static `render-svg` and `render-svg-v2` remain explicitly negotiated, preserving
 their schemas, complete command objects, validators and receipt semantics.
-This addition builds upon the separately published numeric-bound correction
-`deef8c2c3e0e67135d3952995b16561c2ce07878`; it changes no native arithmetic or motion.
+The original frame-command addition built upon the numeric-bound correction
+`deef8c2c3e0e67135d3952995b16561c2ce07878` without changing native arithmetic or
+motion. That commit and the fixture's `native_arithmetic_baseline` are historical
+provenance, not claims about the current renderer. The later
+[small-line domain correction](verification-svg-small-line-domains-2026-10-05.md)
+changes opt-in line domains; the build sidecar and every frame receipt bind the
+actual updated native source bytes. Motion and all command/schema contracts stay
+unchanged.
 The executable and complete raw descriptor necessarily change. Existing Hub
 snapshots must reject executable or raw-describe drift, including when selecting
 an unchanged static capability. Admit the new release only with deliberate

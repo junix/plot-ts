@@ -79,9 +79,8 @@ test('column and line inferred bounds mirror outward selection for both signs', 
       const value = sign * magnitude;
       const column = figure({ width: 900, height: 400 }).bar({ axes, categories: ['A'], series: [{ values: [value] }], labels: false }).render();
       assert.deepEqual(domain(column), sign < 0 ? [-expected(magnitude, false)!, 0] : [0, expected(magnitude, true)]); assertFullTicks(column);
-      if (sign < 0 && (magnitude < 0.001 || magnitude > 100)) continue; // Existing zero/endpoint fit rejection remains.
       const line = figure({ width: 900, height: 400 }).line({ axes, x: [0], series: [{ y: [value] }] }).render();
-      assert.deepEqual(domain(line), sign < 0 ? [-expected(magnitude, true)!, 1] : [0, Math.max(expected(magnitude, false)!, 1)]); assertFullTicks(line);
+      assert.deepEqual(domain(line), sign < 0 ? [-expected(magnitude, true)!, 0] : [0, expected(magnitude, false)!]); assertFullTicks(line);
     }
   }
   const value = Number.MIN_VALUE;

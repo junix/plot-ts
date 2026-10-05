@@ -10,5 +10,5 @@
     "path": "tests/fixtures/provider-render-svg-frame-v1.command.json",
     "sha256": "2f4f14e70a31dd768e73147fa1c46317c6d8bb1aebfa411603ec2ec4500aa2b7"
   },
-  "note": "Frame executable and complete describe identity are build-specific and recorded outside the frozen command fixture. Both static command objects and four static schemas remain unchanged."
+  "note": "Frame executable and complete describe identity are build-specific and recorded outside the frozen command fixture. Both static command objects and four static schemas remain unchanged. native_commit and native_arithmetic_baseline identify historical command/frame introduction baselines, not the current renderer. Subsequent native fixes are bound by the build native_source SHA-256 and frame receipt renderer_source SHA-256."
 }

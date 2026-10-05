@@ -204,6 +204,13 @@ This does not promise arbitrary-input, cross-runtime or all-font pixel parity;
 pin the runtime and font environment for reproducibility. The generic Hub core
 checks bindings, not provider semantics.
 
+The subsequent [small-line domain correction](verification-svg-small-line-domains-2026-10-05.md)
+removes the unit-sized Y maximum floor only for numeric-profile lines. Static V2
+and entry-frame rendering inherit the same native domain: small positive data
+uses its outward decimal maximum; negative-only data ends at zero; valid
+explicit fractional or zero maxima remain exact. Empty/all-zero inferred line
+input retains `[0, 1]`. V1 and omitted-profile legacy output remain unchanged.
+
 The fix changes executable bytes and needs an explicit execution-pin refresh.
 This release build also changes the descriptor's local source-path provenance,
 so the raw describe pin changes; the command objects do not.

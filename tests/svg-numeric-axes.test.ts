@@ -175,9 +175,9 @@ test('all supplied units are full escaped literal single-line strings or explici
 
 test('actual negative, constant, empty and unpaired native domains are shown', () => {
   const line = (x: number[], y: Array<number | null>) => figure().line({ axes: profile, x, series: [{ y }] }).render();
-  assert.deepEqual(domains(line([0, 1], [-3, -1]), 'y'), [-3.2, 1]);
+  assert.deepEqual(domains(line([0, 1], [-3, -1]), 'y'), [-3.2, 0]);
   assert.deepEqual(domains(line([0, 1, 99], [1, null]), 'x'), [0, 99]);
-  assert.deepEqual(domains(line([0, 1], [0.001, 0.002]), 'y'), [0, 1]);
+  assert.deepEqual(domains(line([0, 1], [0.001, 0.002]), 'y'), [0, 0.002]);
   const negativeScatter = figure().scatter({ axes: profile, points: [{ x: 0, y: -3 }, { x: 1, y: -1 }, { x: 99, y: NaN, size: -1 }] }).render();
   assert.deepEqual(domains(negativeScatter, 'y'), [-3, 0]); assert.deepEqual(domains(negativeScatter, 'x'), [0, 1]);
   const constant = figure().scatter({ axes: profile, points: [{ x: Number.MAX_VALUE, y: 1 }] }).render();

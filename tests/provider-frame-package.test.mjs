@@ -146,3 +146,32 @@ test('ordinary artifact byte cap remains enforced for frame, final and reduced r
   assert.ok(Buffer.byteLength(JSON.stringify(oversized)) < 4194304); assert.ok(Buffer.byteLength(native(oversized).render()) > 8388608);
   for (const frame of [d.frame, { ...d.frame, time_ms: 1600 }, { ...d.frame, reduced_motion: true }]) { write({ ...oversized, frame }); reject(args(), 'artifact_limit'); }
 });
+
+test('small line domains survive packed and standalone V2/frame execution with current source provenance', () => {
+  for (const [y, max, expected] of [
+    [[0.001, 0.002], undefined, [0, 0.002]], [[1e-8, 2e-8], undefined, [0, 2e-8]],
+    [[Number.MIN_VALUE, 2 * Number.MIN_VALUE], undefined, [0, 2 * Number.MIN_VALUE]],
+    [[-0.002, -0.001], undefined, [-0.002, 0]], [[0.001, 0.002], 0.003, [0, 0.003]],
+    [[-0.002, -0.001], 0, [-0.002, 0]], [[0, 0], 0, [0, 0]],
+  ]) {
+    const chart = { type: 'line', axes: 'numeric-axes-v1', x: [0, 1], series: [{ y }], ...(max === undefined ? {} : { max }) };
+    for (const command of ['render-svg-v2', 'render-svg-frame-v1']) {
+      const document = { schema_version: command === 'render-svg-v2' ? 'plot-ts.svg-figure/v2' : 'plot-ts.svg-frame/v1',
+        ...(command === 'render-svg-frame-v1' ? { frame: { profile: 'entry-v1', time_ms: 180, reduced_motion: false } } : {}),
+        figure: { width: 500, height: 300 }, charts: [chart] };
+      for (const executable of [script, standalone]) {
+        write(document); const result = run(args(command), executable); assert.equal(result.status, 0, result.stderr);
+        const svg = fs.readFileSync(output, 'utf8'), r = JSON.parse(fs.readFileSync(receipt));
+        assert.equal(svg, command === 'render-svg-v2' ? native(document).render() : native(document).renderFrame(180));
+        const domain = svg.match(/data-plot-axis="y" data-domain-min="([^"]+)" data-domain-max="([^"]+)"/);
+        assert.ok(domain); assert.deepEqual(domain.slice(1).map(Number), expected);
+        assert.equal(r.artifact_receipt.primary.sha256, hash(svg));
+        if (command === 'render-svg-frame-v1') assert.equal(r.renderer_source.sha256, build.native_source.sha256);
+        if (y[0] !== y[1]) {
+          const path = svg.match(/<path d="M[^,]+,([^ ]+) L[^,]+,([^"]+)" fill="none"/); assert.ok(path);
+          assert.ok(Math.abs(Number(path[1]) - Number(path[2])) > 50);
+        }
+      }
+    }
+  }
+});

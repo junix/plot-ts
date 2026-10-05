@@ -40,6 +40,10 @@ const numericAxesChecks = `
   assert.ok(q.renderHtml().includes('mol/L'));
   const decimalWitness = numericFigure().scatter({ axes:'numeric-axes-v1', points:[{x:0,y:0.00003}] }).render();
   assert.ok(decimalWitness.includes('data-plot-axis="y" data-domain-min="0.00003" data-domain-max="0.00003"'));
+  for (const [y,max,upper] of [[[0.001,0.002],undefined,0.002],[[1e-8,2e-8],undefined,2e-8],[[Number.MIN_VALUE,2*Number.MIN_VALUE],undefined,2*Number.MIN_VALUE],[[0.001,0.002],0.003,0.003]]) {
+    const small = numericFigure().line({axes:'numeric-axes-v1',x:[0,1],series:[{y}],...(max === undefined ? {} : {max})}).render();
+    assert.ok(small.includes('data-plot-axis="y" data-domain-min="0" data-domain-max="' + upper + '"'));
+  }
   for(const method of ['bar','line','scatter']) {
     const data = method === 'bar' ? {categories:['A'],series:[{values:[1]}]} : method === 'line' ? {x:[0,1],series:[{y:[1,2]}]} : {points:[{x:0,y:1}]};
     assert.throws(()=>numericFigure()[method]({...data, axes:'numeric-axes'}).render(), /numeric-axes-v1/);

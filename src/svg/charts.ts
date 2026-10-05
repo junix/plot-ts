@@ -272,7 +272,12 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
     }
   }
   const min = -niceUpperBound(c.type, -dataMin, numericAxes ? numericNiceCeilForAxis : niceCeilForAxis);
-  const max = Math.max(c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil), 1);
+  const upper = c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil);
+  // Numeric axes share this actual domain with the marks. A unit-sized floor
+  // flattens small observations and silently expands valid explicit maxima.
+  // Keep the historical fallback only for inferred all-zero/empty data; an
+  // explicit zero remains exact, and negative-only data ends at zero.
+  const max = numericAxes ? (c.max === undefined && min === 0 && upper === 0 ? 1 : upper) : Math.max(upper, 1);
   assertFiniteDomain(c.type, 'y', min, max);
 
   let xMin = Infinity;

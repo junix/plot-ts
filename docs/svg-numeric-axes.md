@@ -86,8 +86,10 @@ Other native domain rules remain, including:
 - Positive and negative column stacks accumulate independently; the scale uses
   each side's endpoints, never a net signed sum
 - Column domains include zero
-- Line Y includes zero and has a maximum of at least 1, even for small positive
-  observations or negative-only observations
+- Line Y includes zero. Its inferred positive maximum follows the actual data
+  magnitude without a unit-sized floor; negative-only observations end at zero.
+  An inferred all-zero or empty line retains the fallback `[0, 1]`. A valid
+  explicit `max` is exact, including zero (`[0, 0]` for all-zero observations)
 - Line X includes all finite supplied X entries, including entries paired only
   with missing Y values
 - Scatter X and Y use finite coordinate pairs only, with its existing nice Y
@@ -292,3 +294,20 @@ before release. Source tests cover true values/positions, extreme and subnormal
 math, full units, rejection, all-theme/surface semantics, legacy omission, real
 legend/body composition and static guides at motion-budget boundaries. Source
 and string checks alone are not a visual-readability claim.
+
+
+### Small-line domain correction
+
+The opt-in line profile no longer inherits the legacy Y maximum floor of 1.
+For example, `[0.001, 0.002]` resolves to `[0, 0.002]`, and `[1e-8, 2e-8]`
+produces visibly separated line coordinates instead of a flat serialized path.
+Negative-only lines end at zero, including subnormal magnitudes. The existing
+outward decimal bounds, zero baseline, tick fitting, missing-value behavior and
+area closure remain shared by guides and marks. A valid explicit fractional or
+zero maximum is used unchanged; invalid maxima still reject.
+
+The omitted-profile legacy renderer retains its original bytes. This is an
+intentional behavior correction for `numeric-axes-v1`, inherited by the static
+V2 and entry-frame providers. It adds no new options or provider contracts.
+See [verification](verification-svg-small-line-domains-2026-10-05.md) for the
+regressions, compatibility checks and source-provenance implications.

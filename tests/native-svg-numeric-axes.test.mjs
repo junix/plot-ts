@@ -1,5 +1,5 @@
 /** Native-only raster release gate. Build first; no browser or downloaded fonts.
- * Optional PLOT_TS_AXES_EVIDENCE_DIR retains seven final pairs and two frames,
+ * Optional PLOT_TS_AXES_EVIDENCE_DIR retains eleven final pairs and two frames,
  * capped at 2 MiB. The theme matrix stays in memory.
  */
 import test, { after } from 'node:test';
@@ -121,4 +121,29 @@ after(() => {
     limitations: ['Native raster evidence, no browser playback', 'Estimated advance boxes; glyph coverage/readability and pixels vary with fonts/viewers'], artifacts, measurements }, null, 2) + '\n';
   assert.ok(evidenceBytes + Buffer.byteLength(manifest) < 2 * 1024 * 1024);
   writeFileSync(join(dir, 'evidence.json'), manifest);
+});
+
+
+test('small signed and subnormal lines have visibly separated marks at the full truthful scale', async () => {
+  for (const [name, y, expected] of [
+    ['small-positive-line', [0.001, 0.002], [0, 0.002]],
+    ['tiny-positive-line', [1e-8, 2e-8], [0, 2e-8]],
+    ['small-negative-line', [-0.002, -0.001], [-0.002, 0]],
+    ['subnormal-line', [Number.MIN_VALUE, 2 * Number.MIN_VALUE], [0, 2 * Number.MIN_VALUE]],
+  ]) {
+    const svg = figure({ width: 500, height: 300 }).line({ axes, unit: 'V', xUnit: 's', x: [0, 1], series: [{ y }] }).render();
+    const domain = svg.match(/data-plot-axis="y" data-domain-min="([^"]+)" data-domain-max="([^"]+)"/);
+    assert.deepEqual(domain.slice(1).map(Number), expected);
+    const path = svg.match(/<path d="M([^,]+),([^ ]+) L([^,]+),([^"]+)" fill="none"/);
+    assert.ok(path); const [x1, y1, x2, y2] = path.slice(1).map(Number);
+    assert.ok(Math.abs(y2 - y1) > 90, 'small measurements cannot collapse at the baseline');
+    const canvas = await raster(svg, name);
+    for (const t of [0.25, 0.5, 0.75]) {
+      const pixels = region(canvas, Math.round(x1 + (x2 - x1) * t) - 2, Math.round(y1 + (y2 - y1) * t) - 2, 5, 5);
+      let ink = false;
+      for (let i = 0; i < pixels.length; i += 4) if (pixels[i] < 10 && pixels[i + 1] > 20 && pixels[i + 1] < 40 && pixels[i + 2] > 35 && pixels[i + 2] < 55 && pixels[i + 3] > 200) ink = true;
+      assert.ok(ink, 'native raster contains the line along its rescaled path');
+    }
+    measurements.push({ name, domain: expected, endpointY: [y1, y2], separatedMarkPixels: true, width: canvas.width, height: canvas.height, rgbaSha256: hash(region(canvas, 0, 0, canvas.width, canvas.height)) });
+  }
 });
