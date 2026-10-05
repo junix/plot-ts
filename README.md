@@ -176,6 +176,30 @@ console.log('✅ 报告已生成')
 完整语义、默认 HTML 兼容性变化、零基线/透明度/边界保证和原生验证范围见
 [SVG entry motion](docs/svg-entry-motion.md)。真实浏览器动画验收仍是独立步骤。
 
+### SVG named-series legends
+
+Column and line charts can opt in to a full-name key per panel:
+
+```typescript
+svg.figure({ width: 600, height: 360, theme: 'sage' })
+  .line({
+    x: [0, 1, 2],
+    legend: 'series-names-v1',
+    series: [
+      { name: '实测 / Observed', y: [2, 5, 3] },
+      { name: '预测 / Forecast', y: [1, 3, 4] },
+    ],
+  })
+  .render();
+```
+
+Names stay complete and in series order, or rendering rejects with a sizing/name
+error. The legend reserves space below each chart and remains static during entry
+motion. Omitted `legend` preserves the old output, including ignored series names.
+Legacy line colors distinguish at most three named series; use a canonical theme
+for four to eight. This does not add numeric axis ticks or units. Layout limits,
+font caveats and validation are in [SVG series legends](docs/svg-series-legends.md).
+
 ### SVG 多图网格
 
 连续添加图表会按添加顺序排入独立面板，默认采用接近正方形的网格。

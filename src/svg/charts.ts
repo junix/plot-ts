@@ -15,6 +15,7 @@ import { h, join, text, n } from '../util/html.js';
 import { estimateTextWidth, fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
 import { assertFiniteDomain, assertFiniteTotal, niceUpperBound } from './numeric.js';
 import type { SvgMotionPlan } from './motion.js';
+import { renderWithSeriesLegend, type SeriesLegendProfile } from './series-legend.js';
 import {
   plot,
   svg,
@@ -38,6 +39,8 @@ export interface ColumnChart {
     name?: string;
     values: (number | null)[];
   }>;
+  /** Opt-in full names below this panel; omitted preserves the legacy rendering. */
+  legend?: SeriesLegendProfile;
   unit?: string;
   stacked?: boolean;
   yAxis?: boolean;
@@ -48,6 +51,12 @@ export interface ColumnChart {
 }
 
 export function renderColumn(c: ColumnChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
+  if (c.legend === undefined) return renderColumnBody(c, width, height, theme, motion);
+  return renderWithSeriesLegend(c.type, c.legend, c.series, width, height, theme,
+    plotHeight => renderColumnBody(c, width, plotHeight, theme, motion));
+}
+
+function renderColumnBody(c: ColumnChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   assertPanelDimensions(c.type, width, height);
   const stacked = !!c.stacked;
   const showLabels = c.labels !== false;
@@ -205,6 +214,8 @@ export interface LineChart {
     smooth?: boolean;
     area?: boolean;
   }>;
+  /** Opt-in full names below this panel; omitted preserves the legacy rendering. */
+  legend?: SeriesLegendProfile;
   unit?: string;
   yAxis?: boolean;
   labels?: boolean;
@@ -212,6 +223,12 @@ export interface LineChart {
 }
 
 export function renderLine(c: LineChart, width: number, height: number, theme?: CanonicalTheme): Html {
+  if (c.legend === undefined) return renderLineBody(c, width, height, theme);
+  return renderWithSeriesLegend(c.type, c.legend, c.series, width, height, theme,
+    plotHeight => renderLineBody(c, width, plotHeight, theme));
+}
+
+function renderLineBody(c: LineChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
   const showAxis = !!c.yAxis;
   const p = drawablePlot(c.type, width, height, {

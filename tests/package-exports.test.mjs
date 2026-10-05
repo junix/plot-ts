@@ -235,6 +235,12 @@ test('packed declarations resolve the SVG entry in a clean NodeNext consumer', (
     figure({ theme: 'not-canonical' });
     const chart: SvgFigure = figure(options);
     const output: string = chart.bar({ categories: ['A'], series: [{ values: [2] }] }).render();
+    chart.bar({ categories: ['甲'], legend: 'series-names-v1', series: [{ name: '实测', values: [1] }] });
+    chart.line({ x: [0], legend: 'series-names-v1', series: [{ name: '实测', y: [1] }] });
+    // @ts-expect-error Legend profile is exact and versioned.
+    chart.line({ x: [], series: [], legend: true });
+    // @ts-expect-error Named-series legends are currently column and line only.
+    chart.scatter({ points: [], legend: 'series-names-v1' });
     const frameOptions: SvgFrameOptions = { reducedMotion: true };
     const frame: string = chart.renderFrame(1600, frameOptions);
     // @ts-expect-error Frame time must be numeric.
@@ -254,6 +260,38 @@ test('packed declarations resolve the SVG entry in a clean NodeNext consumer', (
     cwd: consumer, encoding: 'utf8',
   })
 })
+
+const seriesLegendChecks = `
+  const named = { categories: ['甲', '乙'], legend: 'series-names-v1',
+    series: [{ name: '实测 & <A>', values: [3, -2] }, { name: '预测', values: [-1, 4] }] };
+  const makeNamed = options => legendFigure({ width: 400, height: 250, ...options }).bar(named);
+  const plainNamed = makeNamed({}).render();
+  const activeNamed = makeNamed({ animated: true });
+  assert.ok(plainNamed.includes('data-plot-legend="series-names-v1"'));
+  assert.ok(plainNamed.includes('实测 &amp; &lt;A&gt;'));
+  assert.ok(plainNamed.includes('transform="translate(0, 198)"'));
+  assert.equal(activeNamed.renderFrame(1600), plainNamed);
+  assert.equal(activeNamed.renderFrame(0, { reducedMotion: true }), plainNamed);
+  assert.ok(activeNamed.renderHtml().includes('data-plot-legend="series-names-v1"'));
+  const lines = { x: [0, 1, 2], legend: 'series-names-v1', series: Array.from({ length: 4 }, (_, i) => ({ name: 'S' + i, y: [i, i + 2, i + 1] })) };
+  assert.throws(() => legendFigure().line(lines).render(), /identical visible encodings/);
+  assert.ok(legendFigure({ theme: 'sage' }).line(lines).render().includes('>S3</text>'));
+  assert.throws(() => legendFigure().bar({ ...named, legend: null }).render(), /legend must be/);
+  assert.throws(() => legendFigure().bar({ ...named, series: [{ values: [1] }] }).render(), /name must be a nonblank/);
+  const oldNames = { ...named }; delete oldNames.legend;
+  assert.equal(legendFigure().bar(oldNames).render(), legendFigure().bar({ ...oldNames, series: oldNames.series.map(({ name, ...s }) => s) }).render());
+`;
+
+test('packed SVG named-series legends work without runtime dependencies', () => {
+  const output = run(`
+    import assert from 'node:assert/strict';
+    import { figure as legendFigure } from 'plot-ts/svg';
+    assert.equal(typeof globalThis.document, 'undefined');
+    ${seriesLegendChecks}
+    console.log('Packed series legends passed');
+  `);
+  assert.match(output, /Packed series legends passed/);
+});
 
 test('packed SVG entry motion and pure frames work without runtime dependencies', () => {
   const output = run(`
@@ -298,6 +336,8 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     assert.equal(moving.renderFrame(1600), svg.figure().scatter({ points: [{ x: 0, y: 0 }] }).render());
     const domainFigure = svg.figure;
     ${dataDomainChecks}
+    const legendFigure = svg.figure;
+    ${seriesLegendChecks}
     const panelFigure = svg.figure;
     ${panelGeometryChecks}
     console.log('Root package smoke passed');
@@ -311,6 +351,11 @@ test('root export preserves browser API and SVG namespace with its declared ECha
     // @ts-expect-error Browser surface policy identifiers are exact and versioned.
     figure(document.body, { surfacePolicy: 'transparent' });
     const report: SvgFigure = svg.figure({ width: 400 });
+    const profile: svg.SeriesLegendProfile = 'series-names-v1';
+    report.bar({ categories: [], legend: profile, series: [{ name: 'Full name', values: [] }] });
+    report.line({ x: [], legend: profile, series: [{ name: 'Full name', y: [] }] });
+    // @ts-expect-error Root SVG namespace exposes the exact profile too.
+    report.bar({ categories: [], series: [], legend: 'series-names' });
     // @ts-expect-error Browser entry requires a container.
     figure({ width: 400 });
   `)

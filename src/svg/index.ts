@@ -17,6 +17,7 @@ import { parseSurfacePolicy, surfaceFill, type SurfacePolicy } from '../style/su
 export { SURFACE_POLICY_VERSION, SURFACE_POLICIES, parseSurfacePolicy, type SurfacePolicy } from '../style/surface.js';
 import { MotionTargetLimitError, SVG_MOTION_END_MS, SvgMotionPlan, svgMotionCss, type SvgFrameOptions } from './motion.js';
 export type { SvgFrameOptions } from './motion.js';
+export type { SeriesLegendProfile } from './series-legend.js';
 import type { Html } from '../util/html.js';
 import { esc, h, join } from '../util/html.js';
 import { generateFigureStyles, palette, type AccentName } from '../style/tokens.js';
