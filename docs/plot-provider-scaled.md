@@ -116,3 +116,29 @@ never rewrite old pins to hide a mismatch. The bundled native-source digest
 remains `f15171054f6a55a7a0675599266589da9b6ddf9e1920548103a68deace3fd701` for this
 unchanged native source set. A future source-byte change must produce its real
 new digest and be reviewed independently.
+
+## Actual Hub admission regression
+
+Provider-only schema/receipt and packaging tests do not prove Hub admission.
+The complete command metadata must also satisfy the receiving Hub's contract,
+including sentence punctuation in capability descriptions. Run this explicit
+installed-Hub gate before freezing a new machine-provider release:
+
+```sh
+PLOT_TS_HUB_BIN_DIR=/path/to/reviewed/hub/bin npm run test:hub-admission
+```
+
+The gate performs a complete local provider build, then uses the actual supplied
+`plotctl` and `plot` executables in an isolated temporary home/snapshot/PATH. It
+requires both binaries and never skips, downloads, compiles Hub, or modifies an
+existing user's installation or routes. It pins and admits all four commands,
+sets only an isolated test route, executes a scaled example, and compares the
+actual SVG and complete typed receipt with the native API. It then removes the
+new description's terminal punctuation in its temporary executable copy,
+verifies real Hub rejection and preservation of the entire last-good snapshot,
+and restores/re-admits the correct executable.
+
+`npm run test:package` also checks terminal punctuation for every advertised
+capability description. This fast assertion complements the actual receiving
+Hub gate. Four-transport and pin-transition acceptance remains the separate Hub
+integration suite; this focused admission test does not replace that coverage.

@@ -50,6 +50,7 @@ test('fourth command is exact standalone descriptor; old complete command fixtur
   assert.deepEqual(described.operations, ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'render-svg-scaled-v1']);
   assert.deepEqual(described.commands.map(c => c.name), [...described.operations, 'describe', 'doctor']);
   for (const [i, suffix] of ['v1', 'v2', 'frame-v1', 'scaled-v1'].entries()) assert.equal(JSON.stringify(described.commands[i]) + '\n', fs.readFileSync(join(root, `tests/fixtures/provider-render-svg-${suffix}.command.json`), 'utf8'));
+  for (const command of described.commands.filter(c => c.capability_id)) assert.match(command.description, /[.!?。！？]$/, 'Hub capability descriptions require terminal sentence punctuation');
   const c = described.commands[3]; assert.equal(c.capability_id, 'visualization.plot-ts.render-svg-scaled-v1');
   assert.deepEqual(c.input_schema.required, ['input', 'resource_pins', 'output', 'receipt']);
   assert.deepEqual(c.input_schema.properties.receipt['x-acme-receipt-core'], described.commands[2].input_schema.properties.receipt['x-acme-receipt-core']);
