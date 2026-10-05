@@ -73,7 +73,14 @@ existing shallow-copy configuration semantics.
 
 Axes display the same resolved domain used by the marks. They do not compute an
 independent attractive range, or expand a supplied maximum to accommodate data.
-Opting in makes column's existing axis-aware nice-maximum rule effective.
+Opting in makes column's axis-aware decimal ladder effective. Inferred nice
+bounds use profile-local decimal candidate arithmetic: read the exponent from
+`toExponential()`, parse each complete decimal ladder candidate, and select the
+first finite candidate greater than or equal to the actual positive magnitude.
+Negative nice bounds mirror this outward selection. No epsilon admits an inward
+bound. The fine ladder is `1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10`; column upper
+bounds and line lower bounds use `1, 1.2, 2, 2.4, 3.2, 4, 5, 6, 8, 10` instead.
+The legacy helpers, used when the profile is omitted, remain unchanged.
 Other native domain rules remain, including:
 
 - Positive and negative column stacks accumulate independently; the scale uses
@@ -97,23 +104,29 @@ value rejects. There is no new clipping, silent maximum replacement or dropped
 outlier. The legacy path retains its prior explicit-maximum behavior.
 
 Existing [computed-domain checks](svg-data-domains.md) still apply. Finite inputs
-do not imply representable arithmetic: overflowing spans/stack totals and
-required nice bounds that overflow or underflow reject. For example a raw X
-range of `Number.MIN_VALUE` to `2 * Number.MIN_VALUE` can work, while a required
-inferred positive Y bound at that magnitude rejects. A raw finite X span from
-0 to `1e308` does not overflow the new tick calculation. A span from `-1e308` to
-`1e308` still fails the existing domain check.
+do not imply representable arithmetic: overflowing spans/stack totals and a
+required decimal candidate above the finite range reject. Decimal candidates
+that underflow to zero are skipped; duplicate subnormal candidates are harmless.
+An inferred positive bound of `Number.MIN_VALUE` can now succeed. A raw finite X
+span from 0 to `1e308` does not overflow the tick calculation; a span from
+`-1e308` to `1e308` still fails the domain check. Readable label fitting can impose
+additional limits even when bounds and spans are representable.
 
-Native niceness arithmetic can also differ between JavaScript runtimes. For
-example the scientific scatter sample's Y upper bound is
-`0.00019999999999999998` on Node 22.22.1 and `0.0002` on Node 24.19.0. This
-profile preserves each actual native bound. The first prints a complete
-`1.9999999999999998e-4` tick and requires a wider gutter; it is not rounded to
-pretend to be the second. Consequently domains, labels, fitting and SVG bytes
-are not guaranteed identical across runtimes. Pin the runtime for reproducible
-reports, and allow enough room for the full values. The 400×250 scientific
-example below fits on both runtimes: its plot starts at approximately 143px on
-Node 22 versus 63px on Node 24, trading plot width for the truthful full endpoint.
+The decimal-bound repair resolves the previously observed Node 22.22.1 versus
+Node 24.19.0 niceness difference. Both tested runtimes infer exactly `0.0002` for
+the scientific scatter example below. A singleton scatter point `(0, 0.00003)`
+now has the constant Y domain `[0.00003, 0.00003]` on both, rather than rejecting
+on Node 22 or acquiring a slightly expanded Y range on Node 24. A value one
+representable step above a ladder candidate advances to the next candidate;
+it is never rounded back down to make the label look nicer.
+
+This changes inferred domains, mark positions, labels and fitting where the old
+opt-in arithmetic differed. The marks and axes still use one actual resolved
+domain, and full endpoint labels still round-trip to their values. Explicit
+maxima, observations and arbitrary endpoints are not normalized. Boundary/fuzz,
+SVG and native-raster checks cover the two stated runtime builds in this release;
+they are not a universal cross-runtime, all-input or all-font parity guarantee.
+Pin the runtime and font environment for reproducible reports.
 
 Floating-point sums can lose tiny increments, and the native two-decimal SVG
 coordinate serializer can hide tiny mark features. This is not an exact-real

@@ -1,5 +1,9 @@
 # Numeric-axes machine-provider verification — 2026-10-05
 
+> Historical baseline evidence. The later [decimal-bound repair](verification-svg-numeric-bounds-2026-10-05.md)
+> supersedes the runtime-dependent inferred-niceness and subnormal-rejection
+> observations below; it does not retroactively change this baseline's results.
+
 This is an additive machine profile on the accepted native numeric-axes engine.
 The native SVG, style and utility source files are unchanged. The executable now
 has `render-svg` and `render-svg-v2` under the same provider ID. No Hub renderer,

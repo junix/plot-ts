@@ -193,6 +193,7 @@ test('original supplied JSON matches native bytes for legacy plus 14 themes and 
   let count = 0;
   const empty = doc({ ...column, categories: [], series: [{ values: [] }] }, { ...line, x: [], series: [{ y: [] }] }, { ...scatter, points: [] }, { type: 'heatmap', data: [] });
   const extremes = doc(
+    { ...column, categories: ['inferred tiny'], labels: false, series: [{ values: [Number.MIN_VALUE] }], unit: '%' },
     { ...column, categories: ['tiny'], labels: false, max: Number.MIN_VALUE, series: [{ values: [Number.MIN_VALUE] }], unit: '%' },
     { ...line, x: [2 * Number.MIN_VALUE, Number.MIN_VALUE], series: [{ y: [1, 2] }] },
     { ...scatter, points: [{ x: Number.MAX_VALUE, y: 1, size: 0 }], unit: 'value', xUnit: 'raw x' },
@@ -220,7 +221,6 @@ test('finite source data can still be native-ineligible, with bounded whole-rend
   const cases = [
     doc({ ...column, max: 1, series: [{ values: [2, 20] }] }), doc({ ...line, max: 1, series: [{ y: [2, 20] }] }),
     doc({ ...column, max: -1 }), doc({ ...line, max: -1 }),
-    doc({ ...column, categories: ['A'], series: [{ values: [Number.MIN_VALUE] }] }),
     doc({ ...column, categories: ['A'], series: [{ values: [Number.MAX_VALUE] }] }),
     doc({ ...column, categories: ['A'], stacked: true, max: 1, series: [{ values: [1e308] }, { values: [1e308] }] }),
     doc({ ...column, categories: ['A'], stacked: true, max: 1, series: [{ values: [-1e308] }, { values: [-1e308] }] }),
@@ -241,15 +241,11 @@ test('finite source data can still be native-ineligible, with bounded whole-rend
   for (const point of [{ x: NaN, y: 1 }, { x: 0, y: Infinity }]) reject(() => validateInputV2(doc({ ...scatter, points: [point] })), 'invalid_number');
 });
 
-test('runtime-specific singleton nice-bound eligibility is inherited without provider repair', () => {
+test('singleton decimal-bound witness inherits the repaired native domain without provider repair', () => {
   const source = doc({ ...scatter, points: [{ x: 0, y: 0.00003 }] });
-  const input = parsed(source);
-  let expected: string | undefined;
-  try { expected = native(source); } catch (error) { assert.ok(error instanceof RangeError); }
-  if (process.versions.node === '22.22.1') assert.equal(expected, undefined);
-  if (process.versions.node === '24.19.0') assert.equal(typeof expected, 'string');
-  if (expected === undefined) reject(() => renderInputV2(input), 'native_render_rejected', '$');
-  else assert.equal(renderInputV2(input), expected);
+  const expected = native(source);
+  assert.match(expected, /data-plot-axis="y" data-domain-min="0.00003" data-domain-max="0.00003"/);
+  assert.equal(renderInputV2(parsed(source)), expected);
 });
 
 test('raw JSON, per-panel, total scalar and option boundaries remain bounded', () => {

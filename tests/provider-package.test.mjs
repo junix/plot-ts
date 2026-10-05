@@ -84,7 +84,7 @@ const numericData = { schema_version: 'plot-ts.svg-figure/v2', figure: { width: 
 const argsV2 = () => { const a = args(); a[0] = 'render-svg-v2'; return a; };
 test('packed and dependency-free standalone V2 render literal units and exact direct-native bytes', async () => {
   const { figure } = await import(new URL('../dist/svg.js', import.meta.url));
-  for (const document of [numericData, { schema_version: 'plot-ts.svg-figure/v2', charts: [{ type: 'heatmap', data: [] }] }]) {
+  for (const document of [numericData, { schema_version: 'plot-ts.svg-figure/v2', charts: [{ type: 'scatter', axes: 'numeric-axes-v1', points: [{ x: 0, y: 0.00003 }] }] }, { schema_version: 'plot-ts.svg-figure/v2', charts: [{ type: 'heatmap', data: [] }] }]) {
     fs.writeFileSync(input, JSON.stringify(document));
     const f = figure(document.figure);
     for (const c of document.charts) f[c.type === 'column' ? 'bar' : c.type](c);

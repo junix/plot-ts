@@ -162,7 +162,7 @@ See [numeric axes](svg-numeric-axes.md) for exact domain, tick and fit rules.
 
 Native domain or layout ineligibility returns path-free `native_render_rejected`
 and publishes neither success artifact. Finite data alone does not guarantee
-renderability: maxima below data, overflow/underflow, colliding required endpoint
+renderability: maxima below data, overflowing domains/totals, colliding required endpoint
 or zero ticks, unfittable full units, large marker clearance and too-small final
 plots reject. A larger panel, fewer columns/legend rows or user-chosen shorter
 units can help ordinary crowding. These remedies are never applied automatically.
@@ -193,12 +193,21 @@ claims that thinning, rounding or label omission actually occurred. V2 never
 reports `numeric-axis-labels-unavailable` and does not claim whole-figure losslessness.
 
 Both receipts retain live, viewer-resolved and unmeasured fonts. No fonts are
-embedded. Node 22 and 24 can produce different truthful native bounds and SVG
-bytes (including a wider full scientific endpoint on Node 22). Native eligibility
-can also differ: a single scatter point with Y `0.00003` rejects on Node 22.22.1
-because its inferred nice upper bound is slightly below the observation, while
-Node 24.19.0 accepts it. The provider inherits this behavior without repairing
-domains or retrying another profile; pin the runtime for reproducibility. The generic Hub core checks bindings, not provider semantics.
+embedded. Native numeric-axis niceness now parses complete decimal candidates
+and always selects an outward finite bound, or rejects if none is available.
+The previously runtime-dependent singleton scatter Y `0.00003` now succeeds with
+exact Y domain `[0.00003, 0.00003]` on tested Node 22.22.1 and 24.19.0. The provider
+inherits the native fix without a separate domain repair. Full actual tick labels
+are retained; observations, explicit maxima and receipt semantics are unchanged.
+This does not promise arbitrary-input, cross-runtime or all-font pixel parity;
+pin the runtime and font environment for reproducibility. The generic Hub core
+checks bindings, not provider semantics.
+
+The fix changes executable bytes and needs an explicit execution-pin refresh.
+This release build also changes the descriptor's local source-path provenance,
+so the raw describe pin changes; the command objects do not.
+The V1/V2 machine-input schemas, receipt schemas and descriptor command contracts
+are unchanged. A stale executable snapshot must not be silently accepted.
 
 ### Discovery and explicit pin refresh
 

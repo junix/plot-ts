@@ -1,5 +1,5 @@
 /** Native-only raster release gate. Build first; no browser or downloaded fonts.
- * Optional PLOT_TS_AXES_EVIDENCE_DIR retains six final pairs and two frames,
+ * Optional PLOT_TS_AXES_EVIDENCE_DIR retains seven final pairs and two frames,
  * capped at 2 MiB. The theme matrix stays in memory.
  */
 import test, { after } from 'node:test';
@@ -50,7 +50,7 @@ const cjk = { axes, unit: '请求/秒', xUnit: '時間（秒）', legend: 'serie
 ] };
 const narrow = { axes, x: [1e8, 2e8], series: [{ y: [1, 2] }] };
 
-test('six representative panels retain full readable-guide evidence and a narrow boundary', async () => {
+test('seven representative panels retain full readable-guide evidence and a narrow boundary', async () => {
   let minimumWidth;
   for (let width = 120; width <= 250; width++) {
     try { figure({ width, height: 160 }).line(narrow).render(); minimumWidth = width; break; } catch (error) { assert.ok(error instanceof RangeError); }
@@ -60,6 +60,7 @@ test('six representative panels retain full readable-guide evidence and a narrow
   const samples = [
     ['pm-columns', figure({ width: 400, height: 300, theme: 'sage' }).bar(pm)],
     ['signed-stack', figure({ width: 400, height: 300, theme: 'azure' }).bar(signed)],
+    ['decimal-bound-witness', figure({ width: 400, height: 250, theme: 'sage' }).scatter({ axes, unit: 'mol/L', xUnit: 's', points: [{ x: 0, y: 0.00003 }] })],
     ['scientific-scatter', figure({ width: 400, height: 250 }).scatter(scientific)],
     ['large-scatter-final', figure({ width: 400, height: 300, theme: 'stone-teal' }).scatter(large)],
     ['dark-cjk-line', figure({ width: 440, height: 300, theme: 'sage-dark' }).line(cjk)],

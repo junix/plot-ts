@@ -203,7 +203,9 @@ test('profile rejects extrapolated/nonfinite maxima and retains native extreme-d
   assert.doesNotThrow(() => figure().bar({ categories: ['A'], series: [{ values: [20] }], max: 1 }).render());
   assert.doesNotThrow(() => figure().line({ x: [0, 1], series: [{ y: [1, 20] }], max: 1 }).render());
   for (const x of [[-1e308, 1e308]]) assert.throws(() => figure().line({ axes: profile, x, series: [{ y: [1, 2] }] }).render(), /domain endpoints and span/);
-  for (const value of [Number.MIN_VALUE, Number.MAX_VALUE]) assert.throws(() => figure().bar({ axes: profile, categories: ['A'], series: [{ values: [value] }] }).render(), /inferred maximum/);
+  assert.throws(() => figure().bar({ axes: profile, categories: ['A'], series: [{ values: [Number.MAX_VALUE] }] }).render(), /inferred maximum/);
+  const inferredTiny = figure().bar({ axes: profile, categories: ['A'], series: [{ values: [Number.MIN_VALUE] }], labels: false }).render();
+  assert.deepEqual(domains(inferredTiny, 'y'), [0, Number.MIN_VALUE]); assertGuideSemantics(inferredTiny);
   const tiny = figure().bar({ axes: profile, categories: ['A'], series: [{ values: [Number.MIN_VALUE] }], max: Number.MIN_VALUE, labels: false }).render();
   assert.deepEqual(ticks(tiny, 'y').map(t => t.value), [0, Number.MIN_VALUE]); assertGuideSemantics(tiny);
   for (const x of [[Number.MIN_VALUE, 2 * Number.MIN_VALUE], [0, 1e308]]) {

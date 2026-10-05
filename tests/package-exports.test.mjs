@@ -38,6 +38,8 @@ const numericAxesChecks = `
   assert.equal(q.renderFrame(1600), rendered);
   assert.equal(q.renderFrame(0, {reducedMotion:true}), rendered);
   assert.ok(q.renderHtml().includes('mol/L'));
+  const decimalWitness = numericFigure().scatter({ axes:'numeric-axes-v1', points:[{x:0,y:0.00003}] }).render();
+  assert.ok(decimalWitness.includes('data-plot-axis="y" data-domain-min="0.00003" data-domain-max="0.00003"'));
   for(const method of ['bar','line','scatter']) {
     const data = method === 'bar' ? {categories:['A'],series:[{values:[1]}]} : method === 'line' ? {x:[0,1],series:[{y:[1,2]}]} : {points:[{x:0,y:1}]};
     assert.throws(()=>numericFigure()[method]({...data, axes:'numeric-axes'}).render(), /numeric-axes-v1/);

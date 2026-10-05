@@ -39,7 +39,7 @@
       "height": 320,
       "sha256": {
         "node24_19_0": "44864e59e85e4dfb456baaf7a6bf11ecf2c5d037459bfebb624810aa20b3e582",
-        "node22_22_1": "d54c85a0bac9ee2616a3ed8a7fb1d6bcc28062458653ed339902364e8f59482e"
+        "node22_22_1": "44864e59e85e4dfb456baaf7a6bf11ecf2c5d037459bfebb624810aa20b3e582"
       }
     },
     {
@@ -99,7 +99,7 @@
       "height": 320,
       "sha256": {
         "node24_19_0": "7563d2bfcbac52233611e8ae3598f4c6212becc5edca24c600ec91e3e1bfd982",
-        "node22_22_1": "bddf0944b04ee91ad3dfa068f4b5693a83588a1ec22ae1257f06febfa8bc01ed"
+        "node22_22_1": "7563d2bfcbac52233611e8ae3598f4c6212becc5edca24c600ec91e3e1bfd982"
       }
     },
     {
@@ -159,7 +159,7 @@
       "height": 320,
       "sha256": {
         "node24_19_0": "4bffbf07f5bdd17d311bc76735ee304b046136b5d0608e753ca3ef8805860202",
-        "node22_22_1": "c91781bfeb73bcb24d484f863eee34cc0439fef651e9fa270e402b14b26b399d"
+        "node22_22_1": "4bffbf07f5bdd17d311bc76735ee304b046136b5d0608e753ca3ef8805860202"
       }
     },
     {
@@ -183,5 +183,5 @@
       }
     }
   ],
-  "runtime_note": "Native power/niceness arithmetic may differ by JavaScript runtime. Both exact resolved-domain variants are pinned; no domain or endpoint normalization."
+  "runtime_note": "Profile-local decimal-candidate niceness: these exact fixtures match on tested Node24.19.0 and Node22.22.1. Observations and explicit endpoints are not normalized; this is not universal cross-runtime or all-font parity."
 }

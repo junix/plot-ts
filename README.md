@@ -221,7 +221,8 @@ svg.figure({ width: 500, height: 330, theme: 'sage' })
 ```
 
 The profile uses the actual native domains, at most six ticks per axis, and
-complete exact-value numeric text. Full units and required ticks either fit or
+complete exact-value numeric text. Opt-in inferred bounds use outward decimal
+candidates; observations and explicit maxima are not rounded. Full units and required ticks either fit or
 rendering rejects; there is no ellipsis, silent conversion or hidden scale offset.
 Guides stay static during entry motion and compose with named-series legends.
 Omitting the profile preserves old bytes and the old axis/unit behavior.

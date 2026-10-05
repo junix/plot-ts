@@ -14,6 +14,7 @@ import { COLORS } from '../style/palette.js';
 import { h, join, text, n } from '../util/html.js';
 import { estimateTextWidth, fmt, maxOf, niceCeil, niceCeilForAxis } from '../util/scale.js';
 import { assertFiniteDomain, assertFiniteTotal, niceUpperBound } from './numeric.js';
+import { numericNiceCeil, numericNiceCeilForAxis } from './numeric-bounds.js';
 import type { SvgMotionPlan } from './motion.js';
 import { renderWithSeriesLegend, type SeriesLegendProfile } from './series-legend.js';
 import { numericAxesEnabled, planNumericAxes, assertNumericAxisContains, type NumericAxesProfile } from './numeric-axes.js';
@@ -87,9 +88,10 @@ function renderColumnBody(c: ColumnChart, width: number, height: number, theme?:
     : c.categories.map((_, i) => maxOfSeries(c.series, i));
 
   // 上界：有轴用 axis 阶梯（保证刻度好看），无轴用细阶梯（不浪费画布）
-  const nice = showAxis ? niceCeilForAxis : niceCeil;
+  const nice = numericAxes ? numericNiceCeilForAxis : showAxis ? niceCeilForAxis : niceCeil;
   const rawMax = c.max ?? niceUpperBound(c.type, maxOf(totals), nice);
-  const min = Math.min(0, stacked ? niceCeilSeries(negativeStackMin) : niceFloorSeries(c.series, c.categories));
+  const floorNice = numericAxes ? numericNiceCeil : niceCeil;
+  const min = Math.min(0, stacked ? niceCeilSeries(negativeStackMin, floorNice) : niceFloorSeries(c.series, c.categories, floorNice));
   const max = rawMax <= min ? min + 1 : rawMax;
   assertFiniteDomain(c.type, 'y', min, max);
 
@@ -269,8 +271,8 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
       dataMax = Math.max(dataMax, y);
     }
   }
-  const min = -niceUpperBound(c.type, -dataMin, niceCeilForAxis);
-  const max = Math.max(c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax), 1);
+  const min = -niceUpperBound(c.type, -dataMin, numericAxes ? numericNiceCeilForAxis : niceCeilForAxis);
+  const max = Math.max(c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil), 1);
   assertFiniteDomain(c.type, 'y', min, max);
 
   let xMin = Infinity;
@@ -390,7 +392,7 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
     top: inset(10), right: inset(10), bottom: inset(24), left: inset(showAxis ? 30 : 10),
   });
   if (xMin === Infinity) xMin = xMax = yMin = dataMax = 0;
-  const yMax = niceUpperBound(c.type, dataMax);
+  const yMax = niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil);
   assertFiniteDomain(c.type, 'x', xMin, xMax);
   assertFiniteDomain(c.type, 'y', yMin, yMax);
   if (numericAxes) assertNumericAxisContains(c.type, yMin, yMax, yMin, dataMax);
@@ -1242,7 +1244,7 @@ function maxOfSeries(series: ColumnChart['series'], idx: number): number {
   return m === -Infinity ? 0 : m;
 }
 
-function niceFloorSeries(series: ColumnChart['series'], categories: string[]): number {
+function niceFloorSeries(series: ColumnChart['series'], categories: string[], nice = niceCeil): number {
   let m = Infinity;
   for (const ser of series) {
     // Match the rendering loop: unpaired values cannot affect the domain.
@@ -1251,10 +1253,10 @@ function niceFloorSeries(series: ColumnChart['series'], categories: string[]): n
       if (v !== null && v !== undefined && Number.isFinite(v) && v < m) m = v;
     });
   }
-  return niceCeilSeries(m);
+  return niceCeilSeries(m, nice);
 }
 
-function niceCeilSeries(v: number): number {
+function niceCeilSeries(v: number, nice = niceCeil): number {
   if (v >= 0) return 0;
-  return -niceUpperBound('column', -v);
+  return -niceUpperBound('column', -v, nice);
 }

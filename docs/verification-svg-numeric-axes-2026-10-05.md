@@ -1,5 +1,9 @@
 # Native numeric axes verification, 2026-10-05
 
+> Historical baseline evidence. The later [decimal-bound repair](verification-svg-numeric-bounds-2026-10-05.md)
+> supersedes the runtime-dependent inferred-niceness and subnormal-rejection
+> observations below; it does not retroactively change this baseline's results.
+
 Scope: native per-chart `numeric-axes-v1` on column Y and line/scatter XY,
 with literal full Y/X units. This is an opt-in library change. It does not widen
 machine provider-v1, add browser numeric axes, alter old tick helpers, or repair
