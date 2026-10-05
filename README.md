@@ -412,3 +412,12 @@ background conflicts and transparent PNG export.
 ---
 
 **MIT License** —— 2024
+
+## Local machine provider
+
+The separately bundled `plot-provider-plot-ts` executable renders bounded supplied
+column, line/area, scatter and heatmap arrays or independent grids to static SVG
+with a mandatory typed receipt. It uses the native SVG engine and runs locally in
+Node 22/24; no browser or mutable runtime library import is needed. See
+[the exact input, installation, limits and executable/runtime pin boundary](docs/plot-provider.md).
+The original package exports and SVG defaults remain unchanged.

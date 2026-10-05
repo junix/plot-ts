@@ -17,13 +17,16 @@
     }
   },
   "scripts": {
-    "build": "vite build && vite build --config vite.svg.config.ts && npm run build:types",
+    "build": "vite build && vite build --config vite.svg.config.ts && npm run build:types && npm run build:provider",
     "build:types": "tsc --emitDeclarationOnly",
     "dev": "vite",
     "preview": "vite preview",
     "test": "node --import tsx --test tests/*.test.ts",
     "lint": "tsc --noEmit",
-    "test:package": "npm run build && node --test tests/package-exports.test.mjs"
+    "test:package": "npm run build && node --test tests/package-exports.test.mjs tests/provider-package.test.mjs",
+    "build:provider": "node tools/build-provider.mjs",
+    "test:provider": "node --import tsx --test tests/provider-*.test.ts",
+    "package:provider": "npm run build:provider && node tools/package-provider.mjs"
   },
   "peerDependencies": {
     "echarts": ">=5.0.0"
@@ -55,5 +58,8 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "bin": {
+    "plot-provider-plot-ts": "dist/plot-provider-plot-ts.cjs"
+  }
 }
