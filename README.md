@@ -250,8 +250,9 @@ svg.figure({ width: 600, height: 360 })
 Marks and full-value ticks share the actual transform; decades have equal
 spacing. Native SVG/HTML/frames and native SVG rasterization use the same path.
 Existing `numeric-axes-v1`, omitted output and browser/ECharts behavior remain
-unchanged. Existing V1/V2/frame providers reject these new options; this is not a
-Hub log capability. See [native scaled axes](docs/svg-scaled-axes.md) for strict
+unchanged. Existing V1/V2/frame commands reject these new options. The separate
+[scaled machine command](docs/plot-provider-scaled.md) requires deliberate Hub
+admission and pin refresh. See [native scaled axes](docs/svg-scaled-axes.md) for strict
 pairing, explicit domains, unsupported options, cost bounds and numerical limits.
 
 ### SVG 多图网格
@@ -482,3 +483,11 @@ The separately negotiated [`render-svg-frame-v1`](docs/plot-provider-frame.md)
 command renders one raw-pinned numeric-profile native entry snapshot with a closed
 receipt and bundled-engine source identity. Static V1/V2 commands remain unchanged;
 this snapshot has no browser/CSS player or video output.
+
+## Static scaled-axis provider
+
+The additive `render-svg-scaled-v1` machine command exposes native linear/log10
+line/scatter axes with strict raw-input pins and a full typed receipt. Existing
+V1/V2/frame commands remain closed and unchanged. See
+[the contract, bounds and deliberate Hub pin refresh](docs/plot-provider-scaled.md)
+and [the supplied example](examples/provider-scaled-axes-v1.json).

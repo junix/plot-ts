@@ -3,7 +3,8 @@
 `axes: 'scaled-axes-v1'` is a new, explicit **native line/scatter** profile.
 Each axis independently accepts `xScale` / `yScale`: `'linear'` (the default) or
 `'log10'`. It is separate from the unchanged `numeric-axes-v1` profile and the
-browser/ECharts axis API. It adds no provider or Hub logarithmic capability.
+browser/ECharts axis API. The separate [scaled machine provider](plot-provider-scaled.md) exposes this
+profile through a new command; existing machine commands remain closed.
 
 ```ts
 import { figure } from 'plot-ts/svg';
@@ -169,7 +170,9 @@ and its existing log options are untouched.
 
 Provider V1, V2 and frame input/receipt schemas, complete command objects and
 validators remain unchanged and reject this profile and its fields. The native
-feature is **not selectable through an existing Hub command**. Bundled native
+feature is **not selectable through an existing V1/V2/frame Hub command**. The
+separate `render-svg-scaled-v1` command has its own closed contract and requires
+explicit provider installation/admission and pin refresh. Bundled native
 source and executable identities change; receipts continue binding the actual
 source set. An existing execution/raw-describe pin must be deliberately refreshed
 to use a rebuilt provider, even though its exposed old capabilities are unchanged.

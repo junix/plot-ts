@@ -37,8 +37,8 @@ const build = JSON.parse(fs.readFileSync(join(root, 'dist/plot-provider-build.js
 
 test('both static command objects stay frozen; third leaf uses same pinned-input/receipt transport', () => {
   const described = JSON.parse(run(['describe', '--json']).stdout);
-  assert.deepEqual(described.operations, ['render-svg', 'render-svg-v2', 'render-svg-frame-v1']);
-  assert.deepEqual(described.commands.map(c => c.name), ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'describe', 'doctor']);
+  assert.deepEqual(described.operations, ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'render-svg-scaled-v1']);
+  assert.deepEqual(described.commands.map(c => c.name), ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'render-svg-scaled-v1', 'describe', 'doctor']);
   for (const [i, v] of [[0, 1], [1, 2]]) assert.equal(JSON.stringify(described.commands[i]) + '\n', fs.readFileSync(join(root, `tests/fixtures/provider-render-svg-v${v}.command.json`), 'utf8'));
   const c = described.commands[2];
   assert.equal(JSON.stringify(c) + '\n', fs.readFileSync(join(root, 'tests/fixtures/provider-render-svg-frame-v1.command.json'), 'utf8'));

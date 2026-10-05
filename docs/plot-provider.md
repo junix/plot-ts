@@ -272,3 +272,11 @@ For the small numeric-provider native release proof after building, run
 `rsvg-convert` on PATH (or set `PLOT_TS_RSVG_CONVERT`). Optional
 `PLOT_TS_PROVIDER_AXES_EVIDENCE_DIR` retains bounded evidence. See the
 [dated verification record](verification-provider-numeric-axes-2026-10-05.md).
+
+## Separate static scaled-axis command
+
+`render-svg-scaled-v1` exposes only native scaled line/scatter through a new
+closed input/receipt pair. It does not expand any input described above. See
+[the scaled provider contract](plot-provider-scaled.md) for exact schemas, scalar
+slot budgets, receipt evidence and mandatory deliberate executable/describe pin
+refresh. Scaled frame rendering remains outside the machine contracts.

@@ -1,0 +1,447 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:plot-ts:scaled-render-receipt:v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "plot-ts.scaled-render-receipt/v1"
+    },
+    "provider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "const": "plot-provider-plot-ts"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "profile": {
+      "const": "plot-ts-svg-static-scaled-axes/1"
+    },
+    "input_schema": {
+      "const": "plot-ts.svg-scaled-figure/v1"
+    },
+    "artifact_receipt": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "plot.artifact-receipt-core/v1"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "const": "input"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4194304
+              }
+            },
+            "required": [
+              "role",
+              "sha256",
+              "bytes"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 1,
+          "minItems": 1
+        },
+        "primary": {
+          "type": "object",
+          "properties": {
+            "artifact_id": {
+              "const": "figure"
+            },
+            "role": {
+              "const": "primary"
+            },
+            "argument": {
+              "const": "output"
+            },
+            "kind": {
+              "const": "svg"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8388608
+            }
+          },
+          "required": [
+            "artifact_id",
+            "role",
+            "argument",
+            "kind",
+            "sha256",
+            "bytes"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "inputs",
+        "primary"
+      ],
+      "additionalProperties": false
+    },
+    "figure": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "exclusiveMinimum": 0
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1024
+        },
+        "chart_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "line",
+              "scatter"
+            ]
+          },
+          "maxItems": 16,
+          "minItems": 1
+        },
+        "legend_panels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "panel_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 15
+              },
+              "profile": {
+                "const": "series-names-v1"
+              }
+            },
+            "required": [
+              "panel_index",
+              "profile"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 16
+        },
+        "scaled_axes_panels": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "properties": {
+              "panel_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 15
+              },
+              "chart_type": {
+                "enum": [
+                  "line",
+                  "scatter"
+                ]
+              },
+              "profile": {
+                "const": "scaled-axes-v1"
+              },
+              "axes": {
+                "const": "xy"
+              },
+              "x_scale": {
+                "enum": [
+                  "linear",
+                  "log10"
+                ]
+              },
+              "y_scale": {
+                "enum": [
+                  "linear",
+                  "log10"
+                ]
+              },
+              "unit_axes": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "y",
+                    "x"
+                  ]
+                },
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "panel_index",
+              "chart_type",
+              "profile",
+              "axes",
+              "x_scale",
+              "y_scale",
+              "unit_axes"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Complete ordered requested-and-validated panel profiles, scale choices (omission defaults to linear), and unit presence. No inferred native domains/ticks or measured layout."
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "columns",
+        "gap",
+        "chart_types",
+        "legend_panels",
+        "scaled_axes_panels"
+      ],
+      "additionalProperties": false
+    },
+    "theme": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "legacy"
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "canonical"
+            },
+            "name": {
+              "enum": [
+                "azure",
+                "azure-dark",
+                "mist-blue",
+                "mist-blue-dark",
+                "sage",
+                "sage-dark",
+                "stone-teal",
+                "stone-teal-dark",
+                "dusty-violet",
+                "dusty-violet-dark",
+                "warm-sand",
+                "warm-sand-dark",
+                "olive-paper",
+                "olive-paper-dark"
+              ]
+            },
+            "registry_sha256": {
+              "const": "a08a0f37a45fba66c694b428a47aec76b5a3fbcf96c50a5adfb286a95fb7b828"
+            }
+          },
+          "required": [
+            "mode",
+            "name",
+            "registry_sha256"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "plot.surface-policy/v1"
+        },
+        "policy": {
+          "enum": [
+            "themed-v1",
+            "transparent-root-v1",
+            "transparent-auto-v1"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "policy"
+      ],
+      "additionalProperties": false
+    },
+    "rendering": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "const": "static"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "v8": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "icu": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "unicode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cldr": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "arch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "node",
+        "v8",
+        "icu",
+        "unicode",
+        "cldr",
+        "platform",
+        "arch",
+        "locale"
+      ],
+      "additionalProperties": false
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "panel_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "chart_type": {
+            "enum": [
+              "line",
+              "scatter"
+            ]
+          },
+          "code": {
+            "enum": [
+              "system-fonts-unmeasured",
+              "scaled-axes-fit-approximate",
+              "scaled-axes-interior-ticks-fit-dependent",
+              "binary64-and-svg-coordinate-rounding",
+              "order-color-series-without-legend"
+            ]
+          }
+        },
+        "required": [
+          "panel_index",
+          "chart_type",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 112
+    },
+    "renderer_source": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "plot-ts.native-source-set/v1"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "sha256"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "provider",
+    "profile",
+    "input_schema",
+    "artifact_receipt",
+    "figure",
+    "theme",
+    "surface",
+    "rendering",
+    "runtime",
+    "limitations",
+    "renderer_source"
+  ],
+  "additionalProperties": false,
+  "$comment": "Closed path-free receipt with complete exact comparison against validated request and actual raw input/SVG/runtime/native-source identity. Does not reconstruct native domains, ticks, geometry, fonts or omitted-label counts."
+}

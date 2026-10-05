@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:plot-ts:svg-scaled-figure:v1",
+  "title": "plot-ts static scaled line/scatter figure v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "plot-ts.svg-scaled-figure/v1"
+    },
+    "figure": {
+      "$ref": "#/$defs/figure"
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/chart"
+      },
+      "maxItems": 16,
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "charts"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "number": {
+      "type": "number",
+      "description": "Runtime validator additionally requires Number.isFinite; accepted numbers have IEEE-754 binary64 semantics."
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "Additionally at most 4096 UTF-8 bytes, valid Unicode scalar sequence and legal XML 1.0 characters. No normalization."
+    },
+    "nullableNumber": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "figure": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "theme": {
+          "enum": [
+            "azure",
+            "azure-dark",
+            "mist-blue",
+            "mist-blue-dark",
+            "sage",
+            "sage-dark",
+            "stone-teal",
+            "stone-teal-dark",
+            "dusty-violet",
+            "dusty-violet-dark",
+            "warm-sand",
+            "warm-sand-dark",
+            "olive-paper",
+            "olive-paper-dark"
+          ]
+        },
+        "surfacePolicy": {
+          "enum": [
+            "themed-v1",
+            "transparent-root-v1",
+            "transparent-auto-v1"
+          ]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1024
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "lineSeries": {
+      "type": "object",
+      "properties": {
+        "y": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullableNumber"
+          },
+          "maxItems": 16384
+        },
+        "area": {
+          "const": false
+        },
+        "name": {
+          "$ref": "#/$defs/seriesName"
+        },
+        "smooth": {
+          "const": false
+        }
+      },
+      "required": [
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/number"
+        },
+        "y": {
+          "$ref": "#/$defs/number"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1024
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "line": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "line"
+        },
+        "x": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/number"
+          },
+          "maxItems": 16384
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lineSeries"
+          },
+          "maxItems": 8,
+          "minItems": 1
+        },
+        "yAxis": {
+          "const": true
+        },
+        "legend": {
+          "const": "series-names-v1"
+        },
+        "axes": {
+          "const": "scaled-axes-v1"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "xUnit": {
+          "$ref": "#/$defs/unit"
+        },
+        "labels": {
+          "const": false
+        },
+        "xScale": {
+          "enum": [
+            "linear",
+            "log10"
+          ],
+          "description": "Omitted means linear; native independently owns each axis transform."
+        },
+        "xDomain": {
+          "$ref": "#/$defs/domain"
+        },
+        "yScale": {
+          "enum": [
+            "linear",
+            "log10"
+          ],
+          "description": "Omitted means linear; native independently owns each axis transform."
+        },
+        "yDomain": {
+          "$ref": "#/$defs/domain"
+        }
+      },
+      "required": [
+        "type",
+        "axes",
+        "x",
+        "series"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "legend"
+            ]
+          },
+          "then": {
+            "properties": {
+              "series": {
+                "items": {
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "series": {
+                "items": {
+                  "not": {
+                    "required": [
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "scatter": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "scatter"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/point"
+          },
+          "maxItems": 16384
+        },
+        "yAxis": {
+          "const": true
+        },
+        "axes": {
+          "const": "scaled-axes-v1"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "xUnit": {
+          "$ref": "#/$defs/unit"
+        },
+        "xAxis": {
+          "const": true
+        },
+        "xScale": {
+          "enum": [
+            "linear",
+            "log10"
+          ],
+          "description": "Omitted means linear; native independently owns each axis transform."
+        },
+        "xDomain": {
+          "$ref": "#/$defs/domain"
+        },
+        "yScale": {
+          "enum": [
+            "linear",
+            "log10"
+          ],
+          "description": "Omitted means linear; native independently owns each axis transform."
+        },
+        "yDomain": {
+          "$ref": "#/$defs/domain"
+        }
+      },
+      "required": [
+        "type",
+        "axes",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "chart": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/line"
+        },
+        {
+          "$ref": "#/$defs/scatter"
+        }
+      ]
+    },
+    "seriesName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "series-names-v1 only: nonblank, distinct per chart, <=512 UTF-8 bytes, XML-safe Unicode, no tabs/CR/LF/U+2028/U+2029; full name must fit native legend."
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Full literal unit text; nonblank, at most 512 UTF-8 bytes, XML-1.0-safe Unicode scalars, single line without tab/CR/LF/U+2028/U+2029. Preserve exact spaces and Unicode; no conversion or rescaling. Native full-unit fit required."
+    },
+    "domain": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/number"
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "Exact requested endpoints; native requires ordered containment and finite linear span or strictly positive log values. No clipping or expansion."
+    }
+  },
+  "$comment": "Strict duplicate-free UTF-8 JSON, depth 16, 131072 syntax nodes, 4 MiB. Complete document validation before native render/log work. At most 16 line/scatter panels, 16384 positions per panel (line X length times series count including null Y), 8 line series, and 65536 numeric data scalar slots (including null Y) across X/Y/size and explicit domain endpoints. Finite binary64 values, aligned arrays, exact single-line units/names, native domain/positivity/geometry/fit validation. No area, smoothing, point labels, frame or implicit profile upgrade."
+}

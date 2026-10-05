@@ -25,7 +25,7 @@ test('actual packed bin and standalone copy execute without runtime dependencies
   assert.equal(manifest.bin['plot-provider-plot-ts'], 'dist/plot-provider-plot-ts.cjs');
   assert.ok(fs.statSync(script).mode & 0o111); assert.ok(fs.readFileSync(script, 'utf8').startsWith('#!/usr/bin/env node\n'));
   const described = JSON.parse(execFileSync(join(bin, 'plot-provider-plot-ts'), ['describe', '--json'], { cwd: temporary, env, encoding: 'utf8' }));
-  assert.equal(described.provider.id, 'plot-provider-plot-ts'); assert.deepEqual(described.operations, ['render-svg', 'render-svg-v2', 'render-svg-frame-v1']);
+  assert.equal(described.provider.id, 'plot-provider-plot-ts'); assert.deepEqual(described.operations, ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'render-svg-scaled-v1']);
   assert.equal(described.source.local_code_path, fs.realpathSync(root));
   assert.equal(JSON.parse(run(['doctor', '--json']).stdout).ok, true);
   const result = run(args()); assert.equal(result.status, 0, result.stderr); assert.equal(result.stdout, '');
@@ -67,7 +67,7 @@ test('clean launch diagnostics disclose and cannot prevent already-run Node prel
 test('V1 command serialized bytes stay frozen; V2 is a separate explicitly negotiated leaf', () => {
   const d = JSON.parse(run(['describe', '--json']).stdout);
   assert.equal(JSON.stringify(d.commands[0]) + '\n', fs.readFileSync(join(root, 'tests/fixtures/provider-render-svg-v1.command.json'), 'utf8'));
-  assert.deepEqual(d.commands.map(c => c.name), ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'describe', 'doctor']);
+  assert.deepEqual(d.commands.map(c => c.name), ['render-svg', 'render-svg-v2', 'render-svg-frame-v1', 'render-svg-scaled-v1', 'describe', 'doctor']);
   const v2 = d.commands[1];
   assert.equal(v2.capability_id, 'visualization.plot-ts.render-svg-v2');
   assert.deepEqual(v2.suggested_command_path, ['visualization', 'plot-ts', 'render-svg-v2']);
