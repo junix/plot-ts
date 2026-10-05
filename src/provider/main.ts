@@ -1,3 +1,6 @@
+import { validateFrameInput, renderFrameInput } from './input-frame.js';
+import { makeFrameReceipt } from './receipt-frame.js';
+declare const __PLOT_NATIVE_SOURCE_SHA256__: string;
 import { descriptor, ID, VERSION } from './descriptor.js';
 import { fail, object, parseJson, ProviderError } from './json.js';
 import { validateInputV2, renderInputV2 } from './input-v2.js';
@@ -13,7 +16,7 @@ function main(args: string[]): void {
     process.stdout.write(JSON.stringify({ schema_version: 'plot-provider-plot-ts.doctor/v1', provider: { id: ID, version: VERSION }, ok: missing.length === 0, items: [{ backend: 'bundled-svg-node', available: missing.length === 0, missing }], runtime: runtimeEvidence(), notes: ['Readiness is process feature evidence only; it does not validate unsupplied inputs, pin the interpreter, prevent preloads already executed, or attest transitive runtime identity. No input/output resource discovery or rendering probe.'] }) + '\n');
     return;
   }
-  if (!['render-svg', 'render-svg-v2'].includes(args[0] ?? '') || args.length !== 8 || !args[1] || args[1]!.startsWith('--')) fail('invalid_arguments');
+  if (!['render-svg', 'render-svg-v2', 'render-svg-frame-v1'].includes(args[0] ?? '') || args.length !== 8 || !args[1] || args[1]!.startsWith('--')) fail('invalid_arguments');
   const flags: Record<string, string> = Object.create(null) as Record<string, string>;
   for (let i = 2; i < args.length; i += 2) {
     const key = args[i]!, value = args[i + 1]!;
@@ -26,9 +29,14 @@ function main(args: string[]): void {
   if (typeof pins.input !== 'string' || !/^[0-9a-f]{64}$/.test(pins.input)) fail('invalid_pin');
   const source = readRegular(args[1]!, 4 * 1024 * 1024);
   if (source.hash !== pins.input) fail('input_pin_mismatch');
-  const value = parseJson(source.bytes, 4 * 1024 * 1024, args[0] === 'render-svg-v2');
+  const value = parseJson(source.bytes, 4 * 1024 * 1024, args[0] !== 'render-svg');
   let svg: Buffer, receipt: Buffer;
-  if (args[0] === 'render-svg-v2') {
+  if (args[0] === 'render-svg-frame-v1') {
+    const input = validateFrameInput(value);
+    svg = Buffer.from(renderFrameInput(input));
+    if (svg.length > 8 * 1024 * 1024) fail('artifact_limit');
+    receipt = makeFrameReceipt(input, source.bytes, svg, VERSION, __PLOT_NATIVE_SOURCE_SHA256__);
+  } else if (args[0] === 'render-svg-v2') {
     const input = validateInputV2(value);
     svg = Buffer.from(renderInputV2(input));
     if (svg.length > 8 * 1024 * 1024) fail('artifact_limit');

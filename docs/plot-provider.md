@@ -4,8 +4,9 @@
 in Node**, using the existing pure SVG engine. It adds no browser, DOM, ECharts,
 canvas, eval, user-JavaScript, subprocess, network, implicit input discovery or
 second renderer. Existing library entry points, defaults and SVG bytes are unchanged.
-This static release does not offer a frame command, HTML, PNG, animation player,
-video or the other six library chart families.
+The separate `render-svg-frame-v1` command produces one explicitly requested
+[native entry snapshot](plot-provider-frame.md). No command offers HTML, PNG,
+an animation player, video or the other six library chart families.
 
 ## Build and install
 

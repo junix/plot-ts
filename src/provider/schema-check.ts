@@ -29,6 +29,10 @@ export function schemaCheck(value: unknown, raw: unknown): void {
       if (str.length > ((schema.maxLength as number | undefined) ?? Infinity) || str.length < ((schema.minLength as number | undefined) ?? 0) || (schema.pattern && !(new RegExp(schema.pattern as string)).test(str))) fail('receipt_invalid');
       break;
     }
+    case 'boolean': {
+      if (typeof value !== 'boolean') fail('receipt_invalid');
+      break;
+    }
     case 'number': case 'integer': {
       if (typeof value !== 'number' || !Number.isFinite(value)) fail('receipt_invalid');
       const n = value as number;

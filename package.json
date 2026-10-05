@@ -23,7 +23,7 @@
     "preview": "vite preview",
     "test": "node --import tsx --test tests/*.test.ts",
     "lint": "tsc --noEmit",
-    "test:package": "npm run build && node --test tests/package-exports.test.mjs tests/provider-package.test.mjs",
+    "test:package": "npm run build && node --test tests/package-exports.test.mjs tests/provider-package.test.mjs tests/provider-frame-package.test.mjs tests/provider-build-source.test.mjs",
     "build:provider": "node tools/build-provider.mjs",
     "test:provider": "node --import tsx --test tests/provider-*.test.ts",
     "package:provider": "npm run build:provider && node tools/package-provider.mjs"

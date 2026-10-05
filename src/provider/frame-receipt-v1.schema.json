@@ -1,0 +1,551 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:plot-ts:frame-receipt:v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "plot-ts.frame-receipt/v1"
+    },
+    "provider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "const": "plot-provider-plot-ts"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "profile": {
+      "const": "plot-ts-svg-entry-frame-numeric-axes/1"
+    },
+    "input_schema": {
+      "const": "plot-ts.svg-frame/v1"
+    },
+    "artifact_receipt": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "plot.artifact-receipt-core/v1"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "const": "input"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4194304
+              }
+            },
+            "required": [
+              "role",
+              "sha256",
+              "bytes"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 1,
+          "minItems": 1
+        },
+        "primary": {
+          "type": "object",
+          "properties": {
+            "artifact_id": {
+              "const": "figure"
+            },
+            "role": {
+              "const": "primary"
+            },
+            "argument": {
+              "const": "output"
+            },
+            "kind": {
+              "const": "svg"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8388608
+            }
+          },
+          "required": [
+            "artifact_id",
+            "role",
+            "argument",
+            "kind",
+            "sha256",
+            "bytes"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "inputs",
+        "primary"
+      ],
+      "additionalProperties": false
+    },
+    "figure": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8192,
+          "exclusiveMinimum": 0
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1024
+        },
+        "chart_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "column",
+              "line",
+              "scatter",
+              "heatmap"
+            ]
+          },
+          "maxItems": 16,
+          "minItems": 1
+        },
+        "legend_panels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "panel_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 15
+              },
+              "profile": {
+                "const": "series-names-v1"
+              }
+            },
+            "required": [
+              "panel_index",
+              "profile"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 16
+        },
+        "numeric_axes_panels": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "panel_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  "chart_type": {
+                    "const": "column"
+                  },
+                  "profile": {
+                    "const": "numeric-axes-v1"
+                  },
+                  "axes": {
+                    "const": "y"
+                  },
+                  "unit_axes": {
+                    "type": "array",
+                    "maxItems": 1,
+                    "items": {
+                      "enum": [
+                        "y"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "panel_index",
+                  "chart_type",
+                  "profile",
+                  "axes",
+                  "unit_axes"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "panel_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  "chart_type": {
+                    "const": "line"
+                  },
+                  "profile": {
+                    "const": "numeric-axes-v1"
+                  },
+                  "axes": {
+                    "const": "xy"
+                  },
+                  "unit_axes": {
+                    "type": "array",
+                    "maxItems": 2,
+                    "items": {
+                      "enum": [
+                        "y",
+                        "x"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "panel_index",
+                  "chart_type",
+                  "profile",
+                  "axes",
+                  "unit_axes"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "panel_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  "chart_type": {
+                    "const": "scatter"
+                  },
+                  "profile": {
+                    "const": "numeric-axes-v1"
+                  },
+                  "axes": {
+                    "const": "xy"
+                  },
+                  "unit_axes": {
+                    "type": "array",
+                    "maxItems": 2,
+                    "items": {
+                      "enum": [
+                        "y",
+                        "x"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "panel_index",
+                  "chart_type",
+                  "profile",
+                  "axes",
+                  "unit_axes"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "description": "Validated requested profiles and supplied literal-unit presence in panel order, not reconstructed domains, tick counts or measured geometry. unit_axes is duplicate-free, Y then X."
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "columns",
+        "gap",
+        "chart_types",
+        "legend_panels",
+        "numeric_axes_panels"
+      ],
+      "additionalProperties": false
+    },
+    "theme": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "legacy"
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "canonical"
+            },
+            "name": {
+              "enum": [
+                "azure",
+                "azure-dark",
+                "mist-blue",
+                "mist-blue-dark",
+                "sage",
+                "sage-dark",
+                "stone-teal",
+                "stone-teal-dark",
+                "dusty-violet",
+                "dusty-violet-dark",
+                "warm-sand",
+                "warm-sand-dark",
+                "olive-paper",
+                "olive-paper-dark"
+              ]
+            },
+            "registry_sha256": {
+              "const": "a08a0f37a45fba66c694b428a47aec76b5a3fbcf96c50a5adfb286a95fb7b828"
+            }
+          },
+          "required": [
+            "mode",
+            "name",
+            "registry_sha256"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "plot.surface-policy/v1"
+        },
+        "policy": {
+          "enum": [
+            "themed-v1",
+            "transparent-root-v1",
+            "transparent-auto-v1"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "policy"
+      ],
+      "additionalProperties": false
+    },
+    "rendering": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "const": "frame"
+        },
+        "profile": {
+          "const": "entry-v1"
+        },
+        "time_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reduced_motion": {
+          "type": "boolean"
+        },
+        "target_budget": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "const": 2048
+            },
+            "policy": {
+              "enum": [
+                "enforced",
+                "bypassed-reduced-motion",
+                "bypassed-final-time"
+              ]
+            }
+          },
+          "required": [
+            "limit",
+            "policy"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "mode",
+        "profile",
+        "time_ms",
+        "reduced_motion",
+        "target_budget"
+      ],
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "v8": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "icu": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "unicode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "cldr": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "arch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "node",
+        "v8",
+        "icu",
+        "unicode",
+        "cldr",
+        "platform",
+        "arch",
+        "locale"
+      ],
+      "additionalProperties": false
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "panel_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "chart_type": {
+            "enum": [
+              "column",
+              "line",
+              "scatter",
+              "heatmap"
+            ]
+          },
+          "code": {
+            "enum": [
+              "system-fonts-unmeasured",
+              "numeric-axes-fit-approximate",
+              "numeric-axes-interior-ticks-fit-dependent",
+              "binary64-and-svg-coordinate-rounding",
+              "heatmap-label-fit-approximate-with-full-title",
+              "order-color-series-without-legend",
+              "column-category-label-fit-unmeasured",
+              "column-value-labels-rounded-and-height-conditional",
+              "entry-motion-family-static",
+              "frame-host-styling-uncontrolled"
+            ]
+          }
+        },
+        "required": [
+          "panel_index",
+          "chart_type",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 128
+    },
+    "renderer_source": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "plot-ts.native-source-set/v1"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "sha256"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "provider",
+    "profile",
+    "input_schema",
+    "artifact_receipt",
+    "figure",
+    "theme",
+    "surface",
+    "rendering",
+    "runtime",
+    "limitations",
+    "renderer_source"
+  ],
+  "additionalProperties": false,
+  "$comment": "Semantic validation requires exact requested time/reduced-motion and native budget branch (reduced-motion takes precedence), actual bundled-native-source-set digest, ordered V2 panel metadata and limitations followed by each panel's frame limitations, and raw input/output byte bindings. It does not infer target counts, end time or visible motion. Source identity is not runtime/font/preload attestation.",
+  "title": "plot-ts bounded native SVG frame receipt v1"
+}

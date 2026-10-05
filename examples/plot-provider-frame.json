@@ -1,0 +1,11 @@
+{
+  "schema_version": "plot-ts.svg-frame/v1",
+  "frame": { "profile": "entry-v1", "time_ms": 180, "reduced_motion": false },
+  "figure": { "width": 960, "height": 680, "columns": 2, "title": "Supplied observations", "theme": "sage", "surfacePolicy": "transparent-auto-v1" },
+  "charts": [
+    { "type": "column", "axes": "numeric-axes-v1", "unit": "tickets", "legend": "series-names-v1", "categories": ["A", "B", "C"], "stacked": true, "series": [{ "name": "Gains", "values": [12, 8, 5] }, { "name": "Losses", "values": [-5, -11, null] }] },
+    { "type": "line", "axes": "numeric-axes-v1", "unit": "mV", "xUnit": "s", "x": [0, 1, 2, 3], "series": [{ "y": [0.2, 0.5, null, 0.3], "area": true }] },
+    { "type": "scatter", "axes": "numeric-axes-v1", "unit": "mol/L", "xUnit": "s", "points": [{ "x": 0.01, "y": 0.00012, "size": 0 }, { "x": 0.02, "y": 0.00019, "size": 12.555 }, { "x": 0.03, "y": 0.00015, "size": 24 }] },
+    { "type": "heatmap", "data": [[-1, 2], [3, 0]], "xLabels": ["Q1", "Q2"], "yLabels": ["Actual", "Plan"], "colormap": "plasma" }
+  ]
+}

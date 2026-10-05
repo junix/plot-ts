@@ -1,0 +1,14 @@
+{
+  "schema_version": "plot-ts.provider-frame-fixtures/v1",
+  "static_v2_command": {
+    "native_commit": "bae7463308c3567f0ebe7ef5b8a742f628b48d7f",
+    "path": "tests/fixtures/provider-render-svg-v2.command.json",
+    "sha256": "0d9cd3244bf3b3fc587fa2a194ef3627d4780877295a60492e22ff2dc518411c"
+  },
+  "native_arithmetic_baseline": "deef8c2c3e0e67135d3952995b16561c2ce07878",
+  "frame_command": {
+    "path": "tests/fixtures/provider-render-svg-frame-v1.command.json",
+    "sha256": "2f4f14e70a31dd768e73147fa1c46317c6d8bb1aebfa411603ec2ec4500aa2b7"
+  },
+  "note": "Frame executable and complete describe identity are build-specific and recorded outside the frozen command fixture. Both static command objects and four static schemas remain unchanged."
+}

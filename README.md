@@ -452,3 +452,8 @@ Node 22/24; no browser or mutable runtime library import is needed. See
 `render-svg` keeps the unchanged V1 profile; explicit `render-svg-v2` adds numeric
 axes and full literal units, including mixed grids with categorical heatmaps.
 The original package exports and SVG defaults remain unchanged.
+
+The separately negotiated [`render-svg-frame-v1`](docs/plot-provider-frame.md)
+command renders one raw-pinned numeric-profile native entry snapshot with a closed
+receipt and bundled-engine source identity. Static V1/V2 commands remain unchanged;
+this snapshot has no browser/CSS player or video output.

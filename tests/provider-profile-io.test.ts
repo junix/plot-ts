@@ -6,19 +6,23 @@ import { tmpdir } from 'node:os';
 import { readRegular, publishPair } from '../src/provider/io.js';
 import { validateInput, renderInput } from '../src/provider/input.js';
 import { validateInputV2, renderInputV2 } from '../src/provider/input-v2.js';
+import { validateFrameInput, renderFrameInput } from '../src/provider/input-frame.js';
+import { makeFrameReceipt } from '../src/provider/receipt-frame.js';
 import { makeReceipt } from '../src/provider/receipt.js';
 import { makeReceiptV2 } from '../src/provider/receipt-v2.js';
-for (const version of [1, 2]) for (const fault of ['none', 'input-bytes', 'input-replace', 'stage-bytes', 'stage-symlink', 'second-rename']) {
+for (const version of [1, 2, 3]) for (const fault of ['none', 'input-bytes', 'input-replace', 'stage-bytes', 'stage-symlink', 'second-rename']) {
   test(`V${version} real rendered pair retains publication guarantees for ${fault}`, t => {
     const dir = fs.mkdtempSync(join(tmpdir(), 'plot-provider-profile-io-'));
     t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
     const inputPath = join(dir, 'input.json'), output = join(dir, 'figure.svg'), receipt = join(dir, 'receipt.json');
-    const value = { schema_version: `plot-ts.svg-figure/v${version}`, charts: [{ type: 'line', x: [0, 1], series: [{ y: [1, 2] }], ...(version === 2 ? { axes: 'numeric-axes-v1', unit: 'mV', xUnit: 's' } : {}) }] };
+    const value = { schema_version: version === 3 ? 'plot-ts.svg-frame/v1' : `plot-ts.svg-figure/v${version}`, ...(version === 3 ? { frame: { profile: 'entry-v1', time_ms: 150, reduced_motion: false } } : {}), charts: [{ type: 'line', x: [0, 1], series: [{ y: [1, 2] }], ...(version >= 2 ? { axes: 'numeric-axes-v1', unit: 'mV', xUnit: 's' } : {}) }] };
     const raw = Buffer.from(JSON.stringify(value)); fs.writeFileSync(inputPath, raw);
     fs.writeFileSync(output, 'OLD-SVG', { mode: 0o640 }); fs.writeFileSync(receipt, 'OLD-RECEIPT', { mode: 0o604 });
     const captured = readRegular(inputPath, 4 * 1024 * 1024);
     let svg: Buffer, receiptBytes: Buffer;
-    if (version === 2) {
+    if (version === 3) {
+      const input = validateFrameInput(value); svg = Buffer.from(renderFrameInput(input)); receiptBytes = makeFrameReceipt(input, captured.bytes, svg, '1.0.0', 'a'.repeat(64));
+    } else if (version === 2) {
       const input = validateInputV2(value); svg = Buffer.from(renderInputV2(input)); receiptBytes = makeReceiptV2(input, captured.bytes, svg, '1.0.0');
     } else {
       const input = validateInput(value); svg = Buffer.from(renderInput(input)); receiptBytes = makeReceipt(input, captured.bytes, svg, '1.0.0');
