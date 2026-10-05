@@ -19,6 +19,7 @@ import { MotionTargetLimitError, SVG_MOTION_END_MS, SvgMotionPlan, svgMotionCss,
 export type { SvgFrameOptions } from './motion.js';
 export type { SeriesLegendProfile } from './series-legend.js';
 export type { NumericAxesProfile } from './numeric-axes.js';
+export type { ScaledAxesProfile, NativeAxisScale, NativeAxisDomain, ScaledAxesOptions } from './scaled-axes.js';
 import { SVG_FONT_FAMILY } from './context.js';
 import type { Html } from '../util/html.js';
 import { esc, h, join } from '../util/html.js';

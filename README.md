@@ -229,6 +229,31 @@ Omitting the profile preserves old bytes and the old axis/unit behavior.
 Approximate fonts, domain and layout limits, option conflicts and the unchanged
 versioned machine-provider boundary are documented in [SVG numeric axes](docs/svg-numeric-axes.md).
 
+### Native positive logarithmic axes
+
+Line and scatter can opt in to `axes: 'scaled-axes-v1'`, choosing `xScale` and
+`yScale` independently as `'linear'` or `'log10'`. The new profile uses exact
+observed extents and optional exact `xDomain` / `yDomain` pairs. Log observations
+must be finite and strictly positive; invalid values reject rather than vanish.
+
+```typescript
+svg.figure({ width: 600, height: 360 })
+  .line({
+    axes: 'scaled-axes-v1', xScale: 'log10', yScale: 'log10',
+    xUnit: 'Hz', unit: 'W',
+    x: [1, 10, 100, 1000],
+    series: [{ y: [1, 100, 10000, 1000000] }],
+  })
+  .render();
+```
+
+Marks and full-value ticks share the actual transform; decades have equal
+spacing. Native SVG/HTML/frames and native SVG rasterization use the same path.
+Existing `numeric-axes-v1`, omitted output and browser/ECharts behavior remain
+unchanged. Existing V1/V2/frame providers reject these new options; this is not a
+Hub log capability. See [native scaled axes](docs/svg-scaled-axes.md) for strict
+pairing, explicit domains, unsupported options, cost bounds and numerical limits.
+
 ### SVG 多图网格
 
 连续添加图表会按添加顺序排入独立面板，默认采用接近正方形的网格。

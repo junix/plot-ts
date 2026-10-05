@@ -311,3 +311,12 @@ intentional behavior correction for `numeric-axes-v1`, inherited by the static
 V2 and entry-frame providers. It adds no new options or provider contracts.
 See [verification](verification-svg-small-line-domains-2026-10-05.md) for the
 regressions, compatibility checks and source-provenance implications.
+
+
+## Separate positive logarithmic profile
+
+Native line and scatter additionally support the explicitly separate
+[`scaled-axes-v1`](svg-scaled-axes.md) profile with independent linear/log10 X/Y
+scales and exact domains. Its strict observations and exact-extent rules do not
+change this profile. Existing V1/V2/frame machine commands remain closed and do
+not accept the new profile or its fields.

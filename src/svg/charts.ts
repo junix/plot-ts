@@ -17,6 +17,7 @@ import { assertFiniteDomain, assertFiniteTotal, niceUpperBound } from './numeric
 import { numericNiceCeil, numericNiceCeilForAxis } from './numeric-bounds.js';
 import type { SvgMotionPlan } from './motion.js';
 import { renderWithSeriesLegend, type SeriesLegendProfile } from './series-legend.js';
+import { rejectScaledOptions, resolveScaledAxes, type ScaledAxesOptions, type ScaledAxesProfile } from './scaled-axes.js';
 import { numericAxesEnabled, planNumericAxes, assertNumericAxisContains, type NumericAxesProfile } from './numeric-axes.js';
 import {
   plot,
@@ -223,7 +224,7 @@ function renderColumnBody(c: ColumnChart, width: number, height: number, theme?:
 //  折线图
 // ───────────────────────────────────────────────────────────────
 
-export interface LineChart {
+export interface LineChart extends ScaledAxesOptions {
   type: 'line';
   x: number[];
   series: Array<{
@@ -235,7 +236,7 @@ export interface LineChart {
   /** Opt-in full names below this panel; omitted preserves the legacy rendering. */
   legend?: SeriesLegendProfile;
   /** Opt-in truthful quantitative ticks and full literal units. */
-  axes?: NumericAxesProfile;
+  axes?: NumericAxesProfile | ScaledAxesProfile;
   unit?: string;
   xUnit?: string;
   yAxis?: boolean;
@@ -251,8 +252,9 @@ export function renderLine(c: LineChart, width: number, height: number, theme?: 
 
 function renderLineBody(c: LineChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
-  const numericAxes = numericAxesEnabled(c.type, c);
-  const showAxis = numericAxes || !!c.yAxis;
+  const scaled = c.axes === 'scaled-axes-v1' ? resolveScaledAxes(c) : undefined;
+  const numericAxes = scaled ? false : numericAxesEnabled(c.type, c);
+  const showAxis = scaled || numericAxes || !!c.yAxis;
   let p = drawablePlot(c.type, width, height, {
     top: 22,
     right: 8,
@@ -271,14 +273,14 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
       dataMax = Math.max(dataMax, y);
     }
   }
-  const min = -niceUpperBound(c.type, -dataMin, numericAxes ? numericNiceCeilForAxis : niceCeilForAxis);
-  const upper = c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil);
+  const min = scaled ? scaled.y.domain[0] : -niceUpperBound(c.type, -dataMin, numericAxes ? numericNiceCeilForAxis : niceCeilForAxis);
+  const upper = scaled ? scaled.y.domain[1] : c.max !== undefined && Number.isFinite(c.max) ? c.max : niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil);
   // Numeric axes share this actual domain with the marks. A unit-sized floor
   // flattens small observations and silently expands valid explicit maxima.
   // Keep the historical fallback only for inferred all-zero/empty data; an
   // explicit zero remains exact, and negative-only data ends at zero.
-  const max = numericAxes ? (c.max === undefined && min === 0 && upper === 0 ? 1 : upper) : Math.max(upper, 1);
-  assertFiniteDomain(c.type, 'y', min, max);
+  const max = scaled ? scaled.y.domain[1] : numericAxes ? (c.max === undefined && min === 0 && upper === 0 ? 1 : upper) : Math.max(upper, 1);
+  if (!scaled) assertFiniteDomain(c.type, 'y', min, max);
 
   let xMin = Infinity;
   let xMax = -Infinity;
@@ -288,9 +290,10 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
     xMax = Math.max(xMax, x);
   }
   if (xMin === Infinity) xMin = xMax = 0;
-  assertFiniteDomain(c.type, 'x', xMin, xMax);
+  if (scaled) [xMin, xMax] = scaled.x.domain;
+  else assertFiniteDomain(c.type, 'x', xMin, xMax);
   if (numericAxes) assertNumericAxisContains(c.type, min, max, dataMin, dataMax, c.max);
-  const axes = numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [min, max], x: [xMin, xMax], unit: c.unit, xUnit: c.xUnit, inset: p.inset, theme }) : undefined;
+  const axes = scaled || numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [min, max], x: [xMin, xMax], unit: c.unit, xUnit: c.xUnit, inset: p.inset, theme, ...(scaled ? { scaled } : {}) }) : undefined;
   if (axes) p = axes.plot;
 
   const paths: Html[] = [];
@@ -309,7 +312,7 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
         segment = [];
         continue;
       }
-      segment.push([xOf(p, x, xMin, xMax), yOf(p, y, min, max)]);
+      segment.push([scaled ? p.x0 + scaled.x.fraction(x) * p.w : xOf(p, x, xMin, xMax), scaled ? p.y0 + p.h - scaled.y.fraction(y) * p.h : yOf(p, y, min, max)]);
     }
     if (segment.length) segments.push(segment);
 
@@ -355,12 +358,12 @@ function renderLineBody(c: LineChart, width: number, height: number, theme?: Can
 //  散点图
 // ───────────────────────────────────────────────────────────────
 
-export interface ScatterChart {
+export interface ScatterChart extends ScaledAxesOptions {
   type: 'scatter';
-  /** Nonfinite coordinate pairs are omitted; size is a finite non-negative circle radius in pixels. */
+  /** Legacy/numeric profiles omit nonfinite pairs; scaled-axes-v1 rejects them. Size is a finite non-negative radius in pixels. */
   points: Array<{ x: number; y: number; size?: number }>;
   /** Opt-in truthful quantitative ticks and full literal units. */
-  axes?: NumericAxesProfile;
+  axes?: NumericAxesProfile | ScaledAxesProfile;
   unit?: string;
   xUnit?: string;
   yAxis?: boolean;
@@ -369,8 +372,9 @@ export interface ScatterChart {
 
 export function renderScatter(c: ScatterChart, width: number, height: number, theme?: CanonicalTheme, motion?: SvgMotionPlan): Html {
   assertPanelDimensions(c.type, width, height);
-  const numericAxes = numericAxesEnabled(c.type, c);
-  const showAxis = numericAxes || !!c.yAxis;
+  const scaled = c.axes === 'scaled-axes-v1' ? resolveScaledAxes(c) : undefined;
+  const numericAxes = scaled ? false : numericAxesEnabled(c.type, c);
+  const showAxis = scaled || numericAxes || !!c.yAxis;
   // Only finite coordinate pairs contribute to either domain or marker bounds.
   let maxRadius = 0;
   let xMin = Infinity;
@@ -397,16 +401,16 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
     top: inset(10), right: inset(10), bottom: inset(24), left: inset(showAxis ? 30 : 10),
   });
   if (xMin === Infinity) xMin = xMax = yMin = dataMax = 0;
-  const yMax = niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil);
-  assertFiniteDomain(c.type, 'x', xMin, xMax);
-  assertFiniteDomain(c.type, 'y', yMin, yMax);
+  const yMax = scaled ? scaled.y.domain[1] : niceUpperBound(c.type, dataMax, numericAxes ? numericNiceCeil : niceCeil);
+  if (scaled) { [xMin, xMax] = scaled.x.domain; yMin = scaled.y.domain[0]; }
+  else { assertFiniteDomain(c.type, 'x', xMin, xMax); assertFiniteDomain(c.type, 'y', yMin, yMax); }
   if (numericAxes) assertNumericAxisContains(c.type, yMin, yMax, yMin, dataMax);
-  const axes = numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [yMin, yMax], x: [xMin, xMax], unit: c.unit, xUnit: c.xUnit, inset: p.inset, radius: maxRadius, theme }) : undefined;
+  const axes = scaled || numericAxes ? planNumericAxes({ chart: c.type, width, height, y: [yMin, yMax], x: [xMin, xMax], unit: c.unit, xUnit: c.xUnit, inset: p.inset, radius: maxRadius, theme, ...(scaled ? { scaled } : {}) }) : undefined;
   if (axes) p = axes.plot;
 
   const mapMarkers = () => c.points.flatMap((pt, i) => {
     if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return [];
-    return [{ i, cx: n(xOf(p, pt.x, xMin, xMax)), cy: n(yOf(p, pt.y, yMin, yMax)), r: n(pt.size ?? 4) }];
+    return [{ i, cx: n(scaled ? p.x0 + scaled.x.fraction(pt.x) * p.w : xOf(p, pt.x, xMin, xMax)), cy: n(scaled ? p.y0 + p.h - scaled.y.fraction(pt.y) * p.h : yOf(p, pt.y, yMin, yMax)), r: n(pt.size ?? 4) }];
   });
   const bounds = (mark: ReturnType<typeof mapMarkers>[number]) => ({
     x: scatterExtentBounds(mark.cx, mark.r, width), y: scatterExtentBounds(mark.cy, mark.r, height),
@@ -414,7 +418,7 @@ export function renderScatter(c: ScatterChart, width: number, height: number, th
   const fits = (bound: ReturnType<typeof bounds>) => bound.x.low && bound.x.high && bound.y.low && bound.y.high;
   let markers = mapMarkers();
   const initialBounds = markers.map(bounds);
-  if (axes && !initialBounds.every(fits)) throw new RangeError('SVG scatter numeric-axes-v1 markers must fit after coordinate serialization');
+  if (axes && !initialBounds.every(fits)) throw new RangeError(`SVG scatter ${scaled ? 'scaled-axes-v1' : 'numeric-axes-v1'} markers must fit after coordinate serialization`);
   if (!initialBounds.every(fits)) {
     // A radius exactly equal to a legacy inset can still clip when its center
     // rounds outward at a fractional panel edge. Retry only overflowing sides;
@@ -545,6 +549,7 @@ function heatmapLabel(x: number, y: number, label: string, budget: number, ancho
 
 export function renderHeatmap(c: HeatmapChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   const palette = heatmapPalette(c.colormap);
   const rows = c.data.length;
   const cols = c.data[0]?.length || 0;
@@ -642,6 +647,7 @@ export interface WaterfallChart {
 
 export function renderWaterfall(c: WaterfallChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   if (c.categories.length !== c.values.length) {
     throw new RangeError('Waterfall categories and values must have equal lengths');
   }
@@ -739,6 +745,7 @@ export interface DonutChart {
 
 export function renderDonut(c: DonutChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   for (const item of c.items) {
     if (!Number.isFinite(item.value)) {
       throw new RangeError('Donut values must be finite');
@@ -834,6 +841,7 @@ export interface RadarChart {
 
 export function renderRadar(c: RadarChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   for (const series of c.series) {
     // Sparse or trailing missing entries retain the existing zero fallback.
     if (series.values.some(value => !Number.isFinite(value))) {
@@ -951,6 +959,7 @@ export interface GaugeChart {
 
 export function renderGauge(c: GaugeChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   if (!Number.isFinite(c.value)) {
     throw new RangeError('Gauge value must be finite');
   }
@@ -1051,6 +1060,7 @@ export interface SlopeChart {
 
 export function renderSlope(c: SlopeChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   for (const item of c.items) {
     if (!Number.isFinite(item.left) || !Number.isFinite(item.right)) {
       throw new RangeError('Slope endpoints must be finite');
@@ -1135,6 +1145,7 @@ export interface PyramidChart {
 
 export function renderPyramid(c: PyramidChart, width: number, height: number, theme?: CanonicalTheme): Html {
   assertPanelDimensions(c.type, width, height);
+  rejectScaledOptions(c.type, c);
   if (c.layers.some(layer => !Number.isFinite(layer.value) || layer.value < 0)) {
     throw new RangeError('Pyramid values must be finite and non-negative');
   }

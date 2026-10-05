@@ -1,0 +1,8 @@
+[
+  {"name":"semilog-x-line","method":"line","chart":{"axes":"scaled-axes-v1","xScale":"log10","yScale":"linear","xUnit":"s","unit":"mV","x":[1,10,100,1000],"series":[{"y":[1,2,3,4]}]}},
+  {"name":"semilog-y-line","method":"line","chart":{"axes":"scaled-axes-v1","xScale":"linear","yScale":"log10","xUnit":"s","unit":"mol/L","x":[0,1,2,3],"series":[{"y":[1,10,100,1000]}]}},
+  {"name":"loglog-line","method":"line","chart":{"axes":"scaled-axes-v1","xScale":"log10","yScale":"log10","xUnit":"Hz","unit":"W","legend":"series-names-v1","x":[1,10,100,1000],"series":[{"name":"Power law","y":[1,100,10000,1000000]}]}},
+  {"name":"semilog-x-scatter","method":"scatter","chart":{"axes":"scaled-axes-v1","xScale":"log10","yScale":"linear","xUnit":"s","unit":"mV","points":[{"x":1,"y":1},{"x":10,"y":2},{"x":100,"y":3},{"x":1000,"y":4}]}},
+  {"name":"semilog-y-scatter","method":"scatter","chart":{"axes":"scaled-axes-v1","xScale":"linear","yScale":"log10","xUnit":"s","unit":"mol/L","points":[{"x":0,"y":1},{"x":1,"y":10},{"x":2,"y":100},{"x":3,"y":1000}]}},
+  {"name":"loglog-scatter","method":"scatter","chart":{"axes":"scaled-axes-v1","xScale":"log10","yScale":"log10","xUnit":"Hz","unit":"W","points":[{"x":1,"y":1},{"x":10,"y":100},{"x":100,"y":10000},{"x":1000,"y":1000000}]}}
+]

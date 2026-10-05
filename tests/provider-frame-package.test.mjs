@@ -175,3 +175,16 @@ test('small line domains survive packed and standalone V2/frame execution with c
     }
   }
 });
+
+test('native scaled axes remain rejected by packed/standalone V1, V2 and frame without overwriting old outputs',()=>{
+ for(const executable of [script,standalone])for(const [command,schema] of [['render-svg','plot-ts.svg-figure/v1'],['render-svg-v2','plot-ts.svg-figure/v2'],['render-svg-frame-v1','plot-ts.svg-frame/v1']]){
+  for(const chart of [
+   {type:'line',axes:'scaled-axes-v1',x:[1,10],series:[{y:[1,10]}]},
+   {type:'scatter',axes:'scaled-axes-v1',xScale:'log10',points:[{x:1,y:1}]},
+   {type:'scatter',...(command==='render-svg'?{}:{axes:'numeric-axes-v1'}),yScale:'log10',points:[{x:1,y:1}]},
+  ]){
+   write({schema_version:schema,...(command==='render-svg-frame-v1'?{frame:d.frame}:{}),charts:[chart]});
+   reject(args(command),undefined,executable);
+  }
+ }
+});

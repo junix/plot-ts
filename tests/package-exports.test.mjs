@@ -419,3 +419,21 @@ test('root export preserves browser API and SVG namespace with its declared ECha
 })
 
 
+
+test('packed native semilog/log-log axes work without dependencies and keep strict boundaries',()=>{
+ const result=run(`
+  import assert from 'node:assert/strict';
+  import {figure} from 'plot-ts/svg';
+  for(const method of ['line','scatter'])for(const [xScale,yScale] of [['log10','linear'],['linear','log10'],['log10','log10']]){
+   const data=method==='line'?{x:[1,10,100,1000],series:[{y:[1,10,100,1000]}]}:{points:[1,10,100,1000].map(x=>({x,y:x}))};
+   const f=figure({width:600,height:360})[method]({axes:'scaled-axes-v1',xScale,yScale,...data});
+   const svg=f.render();assert.match(svg,/data-plot-axes="scaled-axes-v1"/);assert.match(svg,/data-plot-scale="log10"/);
+   assert.equal(f.renderFrame(1600),svg);assert.equal(f.renderFrame(0,{reducedMotion:true}),svg);
+  }
+  assert.throws(()=>figure().scatter({axes:'scaled-axes-v1',xScale:'log10',points:[{x:0,y:1}]}).render(),/strictly positive/);
+  assert.throws(()=>figure().scatter({axes:'numeric-axes-v1',xScale:'log10',points:[{x:1,y:1}]}).render(),/requires axes/);
+  console.log('Packed scaled axes passed');
+ `);assert.match(result,/Packed scaled axes passed/);
+ const declarations=readFileSync(join(installed,'dist/svg/index.d.ts'),'utf8');
+ for(const name of ['ScaledAxesProfile','NativeAxisScale','NativeAxisDomain','ScaledAxesOptions'])assert.ok(declarations.includes(name));
+});

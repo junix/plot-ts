@@ -1,4 +1,5 @@
 /** Bounded, truthful native quantitative guides. Legacy renderers never call this plan. */
+import type { ScaledAxes } from './scaled-axes.js';
 import type { CanonicalTheme } from '../style/canonical.js';
 import { INK, INK_ALPHA } from '../style/tokens.js';
 import { h, join, n, text, type Html } from '../util/html.js';
@@ -10,11 +11,15 @@ export type NumericAxesProfile = 'numeric-axes-v1';
 type Chart = 'column' | 'line' | 'scatter';
 type Domain = readonly [number, number];
 interface Options {
+  xScale?: unknown; yScale?: unknown; xDomain?: unknown; yDomain?: unknown;
   axes?: unknown; unit?: unknown; xUnit?: unknown; yAxis?: unknown; xAxis?: unknown;
 }
 
 /** Explicit undefined is omission. Old ignored units remain ignored on that path. */
 export function numericAxesEnabled(chart: Chart, options: Options): boolean {
+  for (const field of ['xScale', 'yScale', 'xDomain', 'yDomain'] as const) {
+    if (options[field] !== undefined) throw new RangeError(`SVG ${chart} ${field} requires axes: 'scaled-axes-v1' on line or scatter`);
+  }
   if (options.axes === undefined) {
     if (options.xUnit !== undefined) throw new RangeError(`SVG ${chart} xUnit requires axes: 'numeric-axes-v1'`);
     return false;
@@ -84,7 +89,7 @@ export interface NumericAxesPlan { plot: Plot; grid: Html; guides: Html; motionB
 interface PlanInput {
   chart: Chart; width: number; height: number; y: Domain; x?: Domain;
   unit?: string | undefined; xUnit?: string | undefined; inset: Plot['inset']; theme?: CanonicalTheme | undefined;
-  recenter?: (p: Plot) => Plot; radius?: number;
+  recenter?: (p: Plot) => Plot; radius?: number; scaled?: ScaledAxes;
 }
 
 function boxFits(b: Box, width: number, height: number): boolean {
@@ -99,7 +104,8 @@ function separate(a: Box, b: Box): boolean {
 /** Y density has priority, then X; exactly three by three candidates at most. */
 export function planNumericAxes(input: PlanInput): NumericAxesPlan {
   const { chart, width, height, y, x, unit, xUnit, inset, theme } = input;
-  const fail = () => new RangeError(`SVG ${chart} numeric-axes-v1 full ticks and units do not fit; increase the panel size, reduce grid columns or legend rows, or supply shorter unit wording`);
+  const profile = input.scaled ? 'scaled-axes-v1' : 'numeric-axes-v1';
+  const fail = () => new RangeError(`SVG ${chart} ${profile} full ticks and units do not fit; increase the panel size, reduce grid columns or legend rows, or supply shorter unit wording`);
   const units = [unit, xUnit].map(value => value === undefined ? 0 : estimateTextWidth(value, 11));
   if (units.some(advance => !nonnegative([width, -16, -advance]) || !nonnegative([width, -16, -Number(n(advance))]))) throw fail();
   const halo = input.radius === undefined ? 0 : input.radius + 2.01;
@@ -108,7 +114,7 @@ export function planNumericAxes(input: PlanInput): NumericAxesPlan {
   // baseline rounds upward; reserve the matching independent gap above it.
   const xUnitY = height - 16.01;
   for (const yCount of [4, 2, 1] as const) {
-    const yValues = numericAxisValues(y, yCount);
+    const yValues = input.scaled ? input.scaled.y.ticks(yCount) : numericAxisValues(y, yCount);
     const yLabels = yValues.map(numericAxisLabel);
     const widest = Math.max(...yLabels.map(v => estimateTextWidth(v, 10)));
     for (const xCount of (x ? [4, 2, 1] : [1]) as Array<4 | 2 | 1>) {
@@ -126,11 +132,11 @@ export function planNumericAxes(input: PlanInput): NumericAxesPlan {
       if (!Number.isFinite(p.w) || !Number.isFinite(p.h) || p.w < 64 || p.h < 48) continue;
       const makeAxis = (domain: Domain, values: number[], horizontal: boolean): Axis => ({ domain, ticks: values.map((value, i) => {
         const label = numericAxisLabel(value);
-        return { value, label, position: horizontal ? xOf(p, value, ...domain) : yOf(p, value, ...domain), advance: estimateTextWidth(label, 10),
+        return { value, label, position: input.scaled ? horizontal ? p.x0 + input.scaled.x.fraction(value) * p.w : p.y0 + p.h - input.scaled.y.fraction(value) * p.h : horizontal ? xOf(p, value, ...domain) : yOf(p, value, ...domain), advance: estimateTextWidth(label, 10),
           anchor: horizontal ? values.length === 1 ? 'middle' : i === 0 ? 'start' : i === values.length - 1 ? 'end' : 'middle' : 'end' };
       }) });
       const yAxis = makeAxis(y, yValues, false);
-      const xAxis = x ? makeAxis(x, numericAxisValues(x, xCount), true) : undefined;
+      const xAxis = x ? makeAxis(x, input.scaled ? input.scaled.x.ticks(xCount) : numericAxisValues(x, xCount), true) : undefined;
       const yRule = p.x0 - halo;
       const yText = yRule - 10;
       const xRule = p.y0 + p.h + bottomHalo;
@@ -164,13 +170,13 @@ export function planNumericAxes(input: PlanInput): NumericAxesPlan {
         'data-plot-grid-value': String(t.value), x1: n(p.x0), x2: n(p.x0 + p.w), y1: n(t.position), y2: n(t.position),
         ...(t.value === 0 ? structure : { stroke: theme?.tokens['--grid'] ?? INK, 'stroke-opacity': theme ? 1 : INK_ALPHA.grid, 'stroke-width': 1 }),
       }));
-      const axisGroup = (axis: Axis, horizontal: boolean) => h('g', { 'data-plot-axis': horizontal ? 'x' : 'y', 'data-domain-min': String(axis.domain[0]), 'data-domain-max': String(axis.domain[1]) },
+      const axisGroup = (axis: Axis, horizontal: boolean) => h('g', { 'data-plot-axis': horizontal ? 'x' : 'y', 'data-domain-min': String(axis.domain[0]), 'data-domain-max': String(axis.domain[1]), ...(input.scaled ? { 'data-plot-scale': horizontal ? input.scaled.x.kind : input.scaled.y.kind } : {}) },
         ...axis.ticks.map(t => h('g', { 'data-plot-tick-value': String(t.value) },
           h('line', { x1: n(horizontal ? t.position : yRule), x2: n(horizontal ? t.position : yRule - 4),
             y1: n(horizontal ? xRule : t.position), y2: n(horizontal ? xRule + 4 : t.position), ...structure }),
           text(horizontal ? t.position : yText, horizontal ? xText : t.position, t.label, { size: 10, baseline: 'middle', anchor: t.anchor, fill: theme?.tokens['--ink'] ?? INK, textLength: t.advance }),
         )));
-      const guides = h('g', { 'data-plot-axes': 'numeric-axes-v1', 'xml:space': 'preserve', style: `font-family: ${SVG_FONT_FAMILY};` },
+      const guides = h('g', { 'data-plot-axes': profile, 'xml:space': 'preserve', style: `font-family: ${SVG_FONT_FAMILY};` },
         axisGroup(yAxis, false), xAxis ? axisGroup(xAxis, true) : '',
         unit === undefined ? '' : h('g', { 'data-plot-unit': 'y' }, text(8, 16, unit, { size: 11, baseline: 'middle', anchor: 'start', fill: theme?.tokens['--ink'] ?? INK, textLength: units[0]! })),
         xUnit === undefined ? '' : h('g', { 'data-plot-unit': 'x' }, text(width / 2, xUnitY, xUnit, { size: 11, baseline: 'middle', anchor: 'middle', fill: theme?.tokens['--ink'] ?? INK, textLength: units[1]! })),
