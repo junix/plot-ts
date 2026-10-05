@@ -261,7 +261,12 @@ The closed `plot-ts.svg-figure/v1` machine-provider contract is unchanged. It
 still rejects `axes`, `xUnit`, `unit` and scatter `xAxis`; its receipt continues to
 report unavailable numeric axis labels for the subset it accepts. A native
 library feature does not silently widen that machine input or create a provider
-frame command. Provider integration requires a separate versioned extension.
+frame command. The additive `render-svg-v2` command now accepts the separate
+`plot-ts.svg-figure/v2` profile, with required numeric axes on quantitative panels
+and unchanged categorical heatmaps in mixed grids. Its closed V2 receipt records
+validated profile/unit presence, not computed domains or measured typography.
+See the [provider contract](plot-provider.md) for exact negotiation, limits,
+limitations and the required explicit execution-pin refresh.
 
 Focused source verification:
 

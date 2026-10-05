@@ -226,7 +226,7 @@ rendering rejects; there is no ellipsis, silent conversion or hidden scale offse
 Guides stay static during entry motion and compose with named-series legends.
 Omitting the profile preserves old bytes and the old axis/unit behavior.
 Approximate fonts, domain and layout limits, option conflicts and the unchanged
-machine-provider-v1 boundary are documented in [SVG numeric axes](docs/svg-numeric-axes.md).
+versioned machine-provider boundary are documented in [SVG numeric axes](docs/svg-numeric-axes.md).
 
 ### SVG 多图网格
 
@@ -448,4 +448,6 @@ column, line/area, scatter and heatmap arrays or independent grids to static SVG
 with a mandatory typed receipt. It uses the native SVG engine and runs locally in
 Node 22/24; no browser or mutable runtime library import is needed. See
 [the exact input, installation, limits and executable/runtime pin boundary](docs/plot-provider.md).
+`render-svg` keeps the unchanged V1 profile; explicit `render-svg-v2` adds numeric
+axes and full literal units, including mixed grids with categorical heatmaps.
 The original package exports and SVG defaults remain unchanged.

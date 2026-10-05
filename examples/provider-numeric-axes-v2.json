@@ -1,0 +1,117 @@
+{
+  "schema_version": "plot-ts.svg-figure/v2",
+  "figure": {
+    "width": 1216,
+    "height": 900,
+    "columns": 2,
+    "title": "Supplied observations & forecast",
+    "theme": "sage",
+    "gap": 16
+  },
+  "charts": [
+    {
+      "type": "column",
+      "axes": "numeric-axes-v1",
+      "unit": "accounts",
+      "categories": [
+        "North",
+        "South"
+      ],
+      "stacked": true,
+      "labels": false,
+      "legend": "series-names-v1",
+      "series": [
+        {
+          "name": "Gains",
+          "values": [
+            12,
+            8
+          ]
+        },
+        {
+          "name": "Losses",
+          "values": [
+            -5,
+            -11
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heatmap",
+      "data": [
+        [
+          -1,
+          2
+        ],
+        [
+          3,
+          0
+        ]
+      ],
+      "xLabels": [
+        "Q1",
+        "Q2"
+      ],
+      "yLabels": [
+        "Actual",
+        "Plan"
+      ],
+      "colormap": "plasma"
+    },
+    {
+      "type": "line",
+      "axes": "numeric-axes-v1",
+      "unit": "mV",
+      "xUnit": "s",
+      "x": [
+        0.3,
+        0,
+        0.2,
+        0.1
+      ],
+      "legend": "series-names-v1",
+      "series": [
+        {
+          "name": "Observed",
+          "y": [
+            1.6,
+            1.2,
+            null,
+            2.1
+          ],
+          "area": true
+        },
+        {
+          "name": "Predicted",
+          "y": [
+            1.7,
+            1.1,
+            1.5,
+            1.8
+          ]
+        }
+      ]
+    },
+    {
+      "type": "scatter",
+      "axes": "numeric-axes-v1",
+      "unit": "mol/L",
+      "xUnit": "s",
+      "points": [
+        {
+          "x": 0.03,
+          "y": 0.00015
+        },
+        {
+          "x": 0.01,
+          "y": 0.00012
+        },
+        {
+          "x": 0.02,
+          "y": 0.00019
+        }
+      ]
+    }
+  ]
+}

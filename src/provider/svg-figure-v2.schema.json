@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:plot-ts:svg-figure:v2",
+  "title": "plot-ts SVG figure v2 (numeric axes and full literal units)",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "plot-ts.svg-figure/v2"
+    },
+    "figure": {
+      "$ref": "#/$defs/figure"
+    },
+    "charts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/chart"
+      },
+      "maxItems": 16,
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "charts"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "number": {
+      "type": "number",
+      "description": "Runtime validator additionally requires Number.isFinite; accepted numbers have IEEE-754 binary64 semantics."
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 1024,
+      "description": "Additionally at most 4096 UTF-8 bytes, valid Unicode scalar sequence and legal XML 1.0 characters. No normalization."
+    },
+    "nullableNumber": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "figure": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "theme": {
+          "enum": [
+            "azure",
+            "azure-dark",
+            "mist-blue",
+            "mist-blue-dark",
+            "sage",
+            "sage-dark",
+            "stone-teal",
+            "stone-teal-dark",
+            "dusty-violet",
+            "dusty-violet-dark",
+            "warm-sand",
+            "warm-sand-dark",
+            "olive-paper",
+            "olive-paper-dark"
+          ]
+        },
+        "surfacePolicy": {
+          "enum": [
+            "themed-v1",
+            "transparent-root-v1",
+            "transparent-auto-v1"
+          ]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1024
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "columnSeries": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullableNumber"
+          },
+          "maxItems": 16384
+        },
+        "name": {
+          "$ref": "#/$defs/seriesName"
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "additionalProperties": false
+    },
+    "lineSeries": {
+      "type": "object",
+      "properties": {
+        "y": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullableNumber"
+          },
+          "maxItems": 16384
+        },
+        "area": {
+          "type": "boolean"
+        },
+        "name": {
+          "$ref": "#/$defs/seriesName"
+        }
+      },
+      "required": [
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/number"
+        },
+        "y": {
+          "$ref": "#/$defs/number"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1024
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "column": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "column"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          },
+          "maxItems": 16384
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/columnSeries"
+          },
+          "maxItems": 8,
+          "minItems": 1
+        },
+        "stacked": {
+          "type": "boolean"
+        },
+        "yAxis": {
+          "const": true
+        },
+        "labels": {
+          "type": "boolean"
+        },
+        "max": {
+          "$ref": "#/$defs/number"
+        },
+        "format": {
+          "enum": [
+            "plain",
+            "percent",
+            "compact"
+          ]
+        },
+        "precision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "legend": {
+          "const": "series-names-v1"
+        },
+        "axes": {
+          "const": "numeric-axes-v1"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        }
+      },
+      "required": [
+        "type",
+        "axes",
+        "categories",
+        "series"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "legend"
+            ]
+          },
+          "then": {
+            "properties": {
+              "series": {
+                "items": {
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "series": {
+                "items": {
+                  "not": {
+                    "required": [
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "line": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "line"
+        },
+        "x": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/number"
+          },
+          "maxItems": 16384
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lineSeries"
+          },
+          "maxItems": 8,
+          "minItems": 1
+        },
+        "yAxis": {
+          "const": true
+        },
+        "max": {
+          "$ref": "#/$defs/number"
+        },
+        "legend": {
+          "const": "series-names-v1"
+        },
+        "axes": {
+          "const": "numeric-axes-v1"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "xUnit": {
+          "$ref": "#/$defs/unit"
+        }
+      },
+      "required": [
+        "type",
+        "axes",
+        "x",
+        "series"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "legend"
+            ]
+          },
+          "then": {
+            "properties": {
+              "series": {
+                "items": {
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "series": {
+                "items": {
+                  "not": {
+                    "required": [
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "scatter": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "scatter"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/point"
+          },
+          "maxItems": 16384
+        },
+        "yAxis": {
+          "const": true
+        },
+        "axes": {
+          "const": "numeric-axes-v1"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "xUnit": {
+          "$ref": "#/$defs/unit"
+        },
+        "xAxis": {
+          "const": true
+        }
+      },
+      "required": [
+        "type",
+        "axes",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "heatmap": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "heatmap"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/number"
+            },
+            "maxItems": 1024,
+            "minItems": 1
+          },
+          "maxItems": 1024
+        },
+        "xLabels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          },
+          "maxItems": 1024
+        },
+        "yLabels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          },
+          "maxItems": 1024
+        },
+        "colormap": {
+          "enum": [
+            "viridis",
+            "plasma",
+            "blues"
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "chart": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/column"
+        },
+        {
+          "$ref": "#/$defs/line"
+        },
+        {
+          "$ref": "#/$defs/scatter"
+        },
+        {
+          "$ref": "#/$defs/heatmap"
+        }
+      ]
+    },
+    "seriesName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "series-names-v1 only: nonblank, distinct per chart, <=512 UTF-8 bytes, XML-safe Unicode, no tabs/CR/LF/U+2028/U+2029; full name must fit native legend."
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Full literal unit text; nonblank, at most 512 UTF-8 bytes, XML-1.0-safe Unicode scalars, single line without tab/CR/LF/U+2028/U+2029. Preserve exact spaces and Unicode; no conversion or rescaling. Native full-unit fit required."
+    }
+  },
+  "$comment": "The provider additionally enforces strict duplicate-free UTF-8 JSON, depth 16, 131072 syntax nodes, 4 MiB, finite numbers, XML-safe scalar strings, aligned series lengths, rectangular heatmaps, no surplus labels, 16384 positions per chart and 65536 numeric data scalars total. Named series require the supported series-names-v1 profile and native full-name fit/distinct-paint checks. See docs/plot-provider.md. V2 requires numeric-axes-v1 on every quantitative panel; unchanged categorical heatmaps may appear alone or alongside quantitative panels. Numeric ticks use raw values; column format/precision affect mark labels only. Native domain and geometry rejection is authoritative."
+}

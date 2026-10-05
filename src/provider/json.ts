@@ -3,7 +3,9 @@ export class ProviderError extends Error {
   constructor(public readonly code: string, public readonly field = '$') { super(`${code} at ${field}`); }
 }
 export const fail = (code: string, field = '$'): never => { throw new ProviderError(code, field); };
-export function parseJson(bytes: Uint8Array, maxBytes = 4 * 1024 * 1024): unknown {
+// V2 may attribute invalid text only to fixed unit fields. Default V1 diagnostics
+// remain unchanged; arbitrary input property names are never echoed.
+export function parseJson(bytes: Uint8Array, maxBytes = 4 * 1024 * 1024, unitFields = false): unknown {
   if (bytes.byteLength > maxBytes) fail('byte_limit');
   if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) fail('invalid_json');
   let source: string;
@@ -11,14 +13,14 @@ export function parseJson(bytes: Uint8Array, maxBytes = 4 * 1024 * 1024): unknow
   let at = 0, nodes = 0;
   const node = () => { if (++nodes > 131072) fail('node_limit'); };
   const ws = () => { while (at < source.length && /[\x20\t\r\n]/.test(source[at]!)) at++; };
-  const string = (): string => {
+  const string = (field = '$'): string => {
     const start = at++;
     while (at < source.length) {
       const c = source[at++];
       if (c === '"') {
         let value: string;
         try { value = JSON.parse(source.slice(start, at)) as string; } catch { return fail('invalid_json'); }
-        validateText(value, '$');
+        validateText(value, field);
         return value;
       }
       if (c === '\\') at++;
@@ -26,10 +28,10 @@ export function parseJson(bytes: Uint8Array, maxBytes = 4 * 1024 * 1024): unknow
     }
     return fail('invalid_json');
   };
-  const value = (depth: number): unknown => {
+  const value = (depth: number, path = '$'): unknown => {
     node(); ws();
     const c = source[at];
-    if (c === '"') return string();
+    if (c === '"') return string(unitFields && /^\$\.charts\[\d+\]\.(?:unit|xUnit)$/.test(path) ? path : '$');
     if (c === '{' || c === '[') {
       if (++depth > 16) fail('depth_limit');
       at++; ws();
@@ -38,7 +40,7 @@ export function parseJson(bytes: Uint8Array, maxBytes = 4 * 1024 * 1024): unknow
         if (source[at] === ']') { at++; return array; }
         for (;;) {
           if (array.length >= 16384) fail('array_limit');
-          array.push(value(depth)); ws();
+          array.push(value(depth, unitFields && path === '$.charts' ? `${path}[${array.length}]` : '$')); ws();
           if (source[at] === ']') { at++; return array; }
           if (source[at++] !== ',') fail('invalid_json');
         }
@@ -50,7 +52,9 @@ export function parseJson(bytes: Uint8Array, maxBytes = 4 * 1024 * 1024): unknow
         const key = string();
         if (Object.hasOwn(object, key)) fail('duplicate_key');
         ws(); if (source[at++] !== ':') fail('invalid_json');
-        object[key] = value(depth); ws();
+        const child = unitFields && path === '$' && depth === 1 && key === 'charts' ? '$.charts'
+          : unitFields && /^\$\.charts\[\d+\]$/.test(path) && (key === 'unit' || key === 'xUnit') ? `${path}.${key}` : '$';
+        object[key] = value(depth, child); ws();
         if (source[at] === '}') { at++; return object; }
         if (source[at++] !== ',') fail('invalid_json');
       }

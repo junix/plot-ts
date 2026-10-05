@@ -35,7 +35,7 @@ Build provenance embeds the actual source root as `source.local_code_path`, not
 consumer cwd. A commit is omitted unless independently verified; source file hashes
 and the built script hash are recorded in `plot-provider-build.json`.
 
-## Exact supplied-data profile
+## V1: unchanged axes-free supplied-data profile
 
 ```sh
 plot-provider-plot-ts render-svg figure.json \
@@ -83,7 +83,7 @@ scatter radius 0–1,024. Native computed-domain and actual drawable-geometry ch
 still apply. Finite source numbers alone do not guarantee a renderable domain.
 SVG ≤8 MiB; receipt ≤256 KiB; no truncation or fallback.
 
-## Receipt, runtime identity and actual limits
+## V1 receipt and shared runtime limits
 
 The closed typed [`plot-ts.render-receipt/v1`](../src/provider/render-receipt-v1.schema.json)
 is serialized and checked against its bundled schema before any output is opened.
@@ -112,13 +112,105 @@ not pin `/usr/bin/env`, the Node selected through PATH, preloads, interpreter
 contents or transitive environment. The trusted launcher must set PATH and clear
 unintended `NODE_OPTIONS`/`NODE_PATH` before startup. Script-side refusal is only
 hygiene: preloads can already have executed. Application no-network/no-eval code
-and descriptor flags are not an OS sandbox. This release adds no Hub changes.
+and descriptor flags are not an OS sandbox. The second capability needs no Hub
+renderer or protocol change, but consumers must explicitly discover and select it.
 
 For independent relationship verification, query the *actual execution Hub*
 with `plot receipt-core --describe --json`, require the exact generic core feature,
 and use that binary/server. The annotation alone is insufficient; old Hubs may
 ignore it. The Hub core verifies hash/size/role binding, not the provider's layout,
 semantic claims, runtime identity or font readability.
+
+## V2: explicit numeric axes and full literal units
+
+The same executable also advertises `visualization.plot-ts.render-svg-v2`:
+
+```sh
+plot-provider-plot-ts render-svg-v2 figure-v2.json \
+  --resource-pins '{"input":"<lowercase SHA-256 of exact figure-v2.json bytes>"}' \
+  --output figure.svg --receipt figure.receipt.json
+```
+
+Its closed document is [`plot-ts.svg-figure/v2`](../src/provider/svg-figure-v2.schema.json).
+Every column, line or scatter panel requires `axes:"numeric-axes-v1"`.
+Heatmap retains exactly its categorical V1 contract, with no axes or unit fields;
+it may appear alone or beside quantitative panels in the same independent grid.
+The [complete mixed example](../examples/provider-numeric-axes-v2.json) includes
+signed stacks, nullable line/area series, scientific scatter and an unchanged heatmap.
+There is no schema sniffing, automatic upgrade, per-panel fallback or inferred axes.
+`render-svg` rejects V2 documents and `render-svg-v2` rejects V1 documents.
+
+- Column receives numeric Y ticks and optional literal `unit` text
+- Line and scatter receive numeric X/Y ticks, optional Y `unit` and X `xUnit`
+- `yAxis` must be omitted or `true`; scatter `xAxis` also accepts only `true`
+- Column/line `xAxis`, column `xUnit`, heatmap axes/units, smoothing, line value
+  labels, HTML, motion and animation remain unsupported, even when false or empty
+- A supplied unit must be nonblank XML-safe, single-line Unicode: at most 128
+  scalars and 512 UTF-8 bytes. Leading/trailing/repeated spaces are preserved
+- No trim, normalization, translation, rescaling, inferred unit, conversion or
+  shared exponent is introduced. A percent unit does not multiply observations
+- Column `format`/`precision` affect its old value labels only. Those can round
+  scientific values to zero or disappear below the height threshold; use
+  `labels:false` when such labels would mislead. Scatter size remains pixel radius
+
+The same source budgets and figure defaults apply to both commands. V2 dispatches
+directly to the existing native figure/chart implementation: one renderer and one
+native domain/guide plan. There is no provider-side scale calculation, alternate
+layout, SVG patching or second render. All supplied X entries, null gaps, series
+order, signed stack endpoints and omitted options keep their native meaning.
+See [numeric axes](svg-numeric-axes.md) for exact domain, tick and fit rules.
+
+Native domain or layout ineligibility returns path-free `native_render_rejected`
+and publishes neither success artifact. Finite data alone does not guarantee
+renderability: maxima below data, overflow/underflow, colliding required endpoint
+or zero ticks, unfittable full units, large marker clearance and too-small final
+plots reject. A larger panel, fewer columns/legend rows or user-chosen shorter
+units can help ordinary crowding. These remedies are never applied automatically.
+
+### V2 receipt and limitations
+
+The separate closed [`plot-ts.render-receipt/v2`](../src/provider/render-receipt-v2.schema.json)
+uses profile `plot-ts-svg-static-numeric-axes/1` and the same generic artifact core.
+`figure.numeric_axes_panels` lists every quantitative panel exactly once in figure
+order, skips heatmaps and is empty for heatmap-only figures. Each record contains
+`panel_index`, matching `chart_type`, `profile:"numeric-axes-v1"`, `axes:"y"` for
+column or `"xy"` for line/scatter, and supplied `unit_axes` in fixed Y-then-X order.
+This is validated requested profile/unit-presence metadata after successful
+rendering, not reconstructed domains, emitted tick counts or measured text bounds.
+Unit strings, names and titles are not echoed; original input and actual SVG
+hashes bind those bytes. Closed-schema and full semantic correspondence checks
+run before publication.
+
+Every quantitative panel reports `system-fonts-unmeasured`,
+`numeric-axes-fit-approximate`, `numeric-axes-interior-ticks-fit-dependent` and
+`binary64-and-svg-coordinate-rounding`, in that order. Unnamed column/line series
+then report `order-color-series-without-legend`. Every column also reports
+`column-category-label-fit-unmeasured`, followed by
+`column-value-labels-rounded-and-height-conditional` unless `labels:false`.
+Heatmaps retain only `system-fonts-unmeasured` and
+`heatmap-label-fit-approximate-with-full-title`. These are potential losses, not
+claims that thinning, rounding or label omission actually occurred. V2 never
+reports `numeric-axis-labels-unavailable` and does not claim whole-figure losslessness.
+
+Both receipts retain live, viewer-resolved and unmeasured fonts. No fonts are
+embedded. Node 22 and 24 can produce different truthful native bounds and SVG
+bytes (including a wider full scientific endpoint on Node 22). Native eligibility
+can also differ: a single scatter point with Y `0.00003` rejects on Node 22.22.1
+because its inferred nice upper bound is slightly below the observation, while
+Node 24.19.0 accepts it. The provider inherits this behavior without repairing
+domains or retrying another profile; pin the runtime for reproducibility. The generic Hub core checks bindings, not provider semantics.
+
+### Discovery and explicit pin refresh
+
+V1 command-object bytes, document/receipt schemas and validation semantics remain
+unchanged. The provider ID, describe schema and protocol version remain unchanged;
+root operations become exactly `render-svg`, `render-svg-v2`. The whole executable
+and raw descriptor nevertheless change, so an older full execution snapshot must
+reject them even when invoking V1. Deliberately run the execution Hub's
+`refresh --pin-execution` workflow to approve and bind the new executable/descriptor;
+never silently refresh or reuse the old script's provenance. Preflight the actual
+execution Hub's complete `plot.artifact-receipt-core/v1` support, discover the exact
+V2 capability and select it explicitly. Existing V1 routes remain V1.
 
 ## Filesystem/publication contract
 
@@ -157,3 +249,9 @@ Package tests extract the real tarball into a clean consumer and materialize its
 bin mapping without installing its unrelated browser dependencies. Native raster
 proofs verify representative supplied four-family arrays and independent grids;
 they are not browser or all-runtime pixel certification.
+
+For the small numeric-provider native release proof after building, run
+`node --test tests/native-provider-numeric-axes.test.mjs` with the existing
+`rsvg-convert` on PATH (or set `PLOT_TS_RSVG_CONVERT`). Optional
+`PLOT_TS_PROVIDER_AXES_EVIDENCE_DIR` retains bounded evidence. See the
+[dated verification record](verification-provider-numeric-axes-2026-10-05.md).
